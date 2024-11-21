@@ -46,6 +46,9 @@ func New(handler Handler, config Config) (*Membership, error) {
 		handler: handler,
 		logger:  slog.With("component", "membership"),
 	}
+	if err := m.setupSerf(); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
@@ -93,14 +96,18 @@ func (m *Membership) eventHandler() {
 				if m.isLocal(member) {
 					continue
 				}
-				m.handleJoin(member)
+				if err := m.handler.Join(member.Name, member.Tags["rpc_addr"]); err != nil {
+					m.logError(err, "failed to join", member)
+				}
 			}
 		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, member := range e.(serf.MemberEvent).Members {
 				if m.isLocal(member) {
-					return
+					continue
 				}
-				m.handleLeave(member)
+				if err := m.handler.Leave(member.Name); err != nil {
+					m.logError(err, "failed to leave", member)
+				}
 			}
 		}
 	}
@@ -111,18 +118,16 @@ func (m *Membership) isLocal(member serf.Member) bool {
 	return m.serf.LocalMember().Name == member.Name
 }
 
-// handleJoin calls the Join method on the Handler for each new member that joins.
-func (m *Membership) handleJoin(member serf.Member) {
-	if err := m.handler.Join(member.Name, member.Tags["rpc_addr"]); err != nil {
-		m.logError(err, "failed to join", member)
-	}
+// Members returns the current list of members in the cluster.
+// Used in test
+func (m *Membership) Members() []serf.Member {
+	return m.serf.Members()
 }
 
-// handleLeave calls the Leave method on the Handler for each member that leaves.
-func (m *Membership) handleLeave(member serf.Member) {
-	if err := m.handler.Leave(member.Name); err != nil {
-		m.logError(err, "failed to leave", member)
-	}
+// Leave gracefully shuts down the node from the cluster.
+// Used in test
+func (m *Membership) Leave() error {
+	return m.serf.Leave()
 }
 
 // logError logs errors based on their type. Raft will return ErrNotLeader when attempting to
