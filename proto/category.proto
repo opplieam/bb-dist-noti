@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package category.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/opplieam/bb-dist-noti/protogen/category_v1";
+
+message CategoryMessage {
+  uint32 user_id = 1;
+  string category_from = 2;
+  string category_to = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message CategorySnapshot {
+  repeated CategoryMessage messages = 1;
+}
