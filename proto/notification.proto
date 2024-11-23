@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/opplieam/bb-dist-noti/protogen/notification_v1";
+
+message Server {
+  string id = 1;
+  string rpc_addr = 2;
+  bool is_leader = 3;
+}

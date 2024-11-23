@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/raft"
 	wal "github.com/hashicorp/raft-wal"
 	api "github.com/opplieam/bb-dist-noti/protogen/category_v1"
+	notiApi "github.com/opplieam/bb-dist-noti/protogen/notification_v1"
 )
 
 // DistributedStore represents a distributed key-value store using Raft consensus.
@@ -58,13 +59,21 @@ func (d *DistributedStore) setupRaft() error {
 	d.fsm = fsm
 
 	// Setup LogStore
-	logStore, err := wal.Open(filepath.Join(d.dataDir, "raft", "log"))
+	logStoreDir := filepath.Join(d.dataDir, "raft", "log")
+	if err := os.MkdirAll(logStoreDir, 0755); err != nil {
+		return fmt.Errorf("error creating raft log directory: %w", err)
+	}
+	logStore, err := wal.Open(logStoreDir)
 	if err != nil {
 		return fmt.Errorf("error opening raft log: %w", err)
 	}
 	d.logStore = logStore
 	// Setup StableStore
-	stableStore, err := wal.Open(filepath.Join(d.dataDir, "raft", "stable"))
+	raftStableDir := filepath.Join(d.dataDir, "raft", "stable")
+	if err = os.MkdirAll(raftStableDir, 0755); err != nil {
+		return fmt.Errorf("error creating raft stable directory: %w", err)
+	}
+	stableStore, err := wal.Open(raftStableDir)
 	if err != nil {
 		return fmt.Errorf("error opening raft stable: %w", err)
 	}
@@ -107,20 +116,6 @@ func (d *DistributedStore) setupRaft() error {
 	raftConfig := raft.DefaultConfig()
 	// unique ID for this server
 	raftConfig.LocalID = d.config.Raft.LocalID
-	// optional, support override timeout for testing purpose
-	// default config should be fine
-	if d.config.Raft.HeartbeatTimeout != 0 {
-		raftConfig.HeartbeatTimeout = d.config.Raft.HeartbeatTimeout
-	}
-	if d.config.Raft.ElectionTimeout != 0 {
-		raftConfig.ElectionTimeout = d.config.Raft.ElectionTimeout
-	}
-	if d.config.Raft.LeaderLeaseTimeout != 0 {
-		raftConfig.LeaderLeaseTimeout = d.config.Raft.LeaderLeaseTimeout
-	}
-	if d.config.Raft.CommitTimeout != 0 {
-		raftConfig.CommitTimeout = d.config.Raft.CommitTimeout
-	}
 
 	// Setup Raft
 	d.raft, err = raft.NewRaft(
@@ -267,4 +262,21 @@ func (d *DistributedStore) WaitForLeader(timeout time.Duration) error {
 			}
 		}
 	}
+}
+
+func (d *DistributedStore) GetServers() ([]*notiApi.Server, error) {
+	future := d.raft.GetConfiguration()
+	if err := future.Error(); err != nil {
+		return nil, err
+	}
+	var servers []*notiApi.Server
+	for _, server := range future.Configuration().Servers {
+		leaderAddr, _ := d.raft.LeaderWithID()
+		servers = append(servers, &notiApi.Server{
+			Id:       string(server.ID),
+			RpcAddr:  string(server.Address),
+			IsLeader: leaderAddr == server.Address,
+		})
+	}
+	return servers, nil
 }
