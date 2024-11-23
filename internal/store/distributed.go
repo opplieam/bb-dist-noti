@@ -264,6 +264,10 @@ func (d *DistributedStore) WaitForLeader(timeout time.Duration) error {
 	}
 }
 
+// GetServers returns a list of all servers in the Raft cluster. For each server,
+// it provides the server ID, RPC address, and indicates whether it is the current
+// leader. The function retrieves this information from the Raft configuration and
+// leader state. Returns an error if unable to get the Raft configuration.
 func (d *DistributedStore) GetServers() ([]*notiApi.Server, error) {
 	future := d.raft.GetConfiguration()
 	if err := future.Error(); err != nil {
