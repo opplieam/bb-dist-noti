@@ -6,8 +6,7 @@ import (
 	"path/filepath"
 )
 
-// Function to get the project root directory
-func getProjectRoot() (string, error) {
+func GetProjectRoot() (string, error) {
 	// Get the executable's path
 	execPath, err := os.Executable()
 	if err != nil {
