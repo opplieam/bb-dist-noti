@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	"github.com/opplieam/bb-dist-noti/internal/dynaport"
 	"github.com/opplieam/bb-dist-noti/internal/store"
+	"github.com/opplieam/bb-dist-noti/pkg/dynaport"
 	api "github.com/opplieam/bb-dist-noti/protogen/category_v1"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"

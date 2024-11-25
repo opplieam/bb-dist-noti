@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/serf/serf"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
-	"github.com/opplieam/bb-dist-noti/internal/dynaport"
+	"github.com/opplieam/bb-dist-noti/pkg/dynaport"
 	"github.com/stretchr/testify/require"
 )
 
@@ -81,7 +81,7 @@ func setupMember(t *testing.T, members []*discovery.Membership) ([]*discovery.Me
 		}
 	}
 
-	m, err := discovery.New(h, c)
+	m, err := discovery.NewMembership(h, c)
 	require.NoError(t, err)
 	members = append(members, m)
 
