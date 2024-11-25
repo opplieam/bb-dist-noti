@@ -21,3 +21,31 @@ protoc-go:
 build-proto: clean-directory protoc-go
 
 # ------------------------ Proto End ------------------------
+
+# ------------------------ TLS Start ------------------------
+CONFIG_PATH=./tlsconfig
+
+.PHONY: init-dir
+init-dir:
+	mkdir -p ${CONFIG_PATH}
+
+.PHONY: gencert
+gencert:
+	cfssl gencert \
+			-initca tlsconfig/ca-csr.json | cfssljson -bare ca
+
+	cfssl gencert \
+			-ca=ca.pem \
+			-ca-key=ca-key.pem \
+			-config=tlsconfig/ca-config.json \
+			-profile=server \
+			tlsconfig/server-csr.json | cfssljson -bare server
+
+	cfssl gencert \
+			-ca=ca.pem \
+			-ca-key=ca-key.pem \
+			-config=tlsconfig/ca-config.json \
+			-profile=client \
+			tlsconfig/client-csr.json | cfssljson -bare client
+	mv *.pem *.csr ${CONFIG_PATH}
+# ------------------------ TLS End --------------------------
