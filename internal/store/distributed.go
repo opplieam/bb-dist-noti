@@ -20,6 +20,7 @@ package store
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -38,12 +39,14 @@ type DistributedStore struct {
 	fsm         *FiniteState
 	logStore    *wal.WAL
 	stableStore *wal.WAL
+	logger      *slog.Logger
 }
 
 func NewDistributedStore(dataDir string, config Config) (*DistributedStore, error) {
 	dis := &DistributedStore{
 		config:  config,
 		dataDir: dataDir,
+		logger:  slog.With("component", "distributed"),
 	}
 	if err := dis.setupRaft(); err != nil {
 		return nil, err

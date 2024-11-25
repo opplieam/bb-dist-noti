@@ -77,7 +77,7 @@ func setupMember(t *testing.T, members []*discovery.Membership) ([]*discovery.Me
 		h.leaves = make(chan string, 3)
 	} else {
 		c.StartJoinAddr = []string{
-			members[0].SerfAddr,
+			members[0].Config.SerfAddr,
 		}
 	}
 

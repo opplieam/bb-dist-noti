@@ -32,7 +32,7 @@ type Config struct {
 
 // Membership manages membership of nodes using Serf and interacts with a custom Handler.
 type Membership struct {
-	Config
+	Config  Config
 	handler Handler
 	serf    *serf.Serf      // The Serf instance used for discovering nodes.
 	events  chan serf.Event // Channel to receive Serf events.
@@ -55,7 +55,7 @@ func New(handler Handler, config Config) (*Membership, error) {
 // setupSerf initializes and starts the Serf instance. It sets up event handling,
 // binds to the specified address, and attempts to join any provided start addresses.
 func (m *Membership) setupSerf() error {
-	addr, err := net.ResolveTCPAddr("tcp", m.SerfAddr)
+	addr, err := net.ResolveTCPAddr("tcp", m.Config.SerfAddr)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (m *Membership) setupSerf() error {
 
 	m.events = make(chan serf.Event)
 	config.EventCh = m.events
-	config.Tags = m.Tags
+	config.Tags = m.Config.Tags
 	config.NodeName = m.Config.NodeName
 
 	m.serf, err = serf.Create(config)
@@ -74,8 +74,8 @@ func (m *Membership) setupSerf() error {
 		return err
 	}
 	go m.eventHandler()
-	if m.StartJoinAddr != nil {
-		_, err = m.serf.Join(m.StartJoinAddr, true)
+	if m.Config.StartJoinAddr != nil {
+		_, err = m.serf.Join(m.Config.StartJoinAddr, true)
 		if err != nil {
 			return err
 		}
