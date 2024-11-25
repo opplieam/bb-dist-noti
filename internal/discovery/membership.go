@@ -39,8 +39,8 @@ type Membership struct {
 	logger  *slog.Logger    // Logger for logging various operations and errors.
 }
 
-// New creates a new Membership instance with the given Handler and Config.
-func New(handler Handler, config Config) (*Membership, error) {
+// NewMembership creates a new Membership instance with the given Handler and Config.
+func NewMembership(handler Handler, config Config) (*Membership, error) {
 	m := &Membership{
 		Config:  config,
 		handler: handler,

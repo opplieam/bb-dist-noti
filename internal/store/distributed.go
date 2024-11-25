@@ -1,5 +1,5 @@
 /*
-Package store implements a distributed key-value store using Raft consensus.
+Package store implements a distributed append only store using Raft consensus.
 
 The store package provides a high-level API for managing a distributed system where multiple nodes can participate in decision-making through the Raft consensus protocol. It handles command application, state management, and cluster membership operations such as joining and leaving nodes.
 
@@ -31,7 +31,7 @@ import (
 	notiApi "github.com/opplieam/bb-dist-noti/protogen/notification_v1"
 )
 
-// DistributedStore represents a distributed key-value store using Raft consensus.
+// DistributedStore represents a distributed append only store using Raft consensus.
 type DistributedStore struct {
 	config      Config
 	dataDir     string
@@ -258,7 +258,7 @@ func (d *DistributedStore) WaitForLeader(timeout time.Duration) error {
 	for {
 		select {
 		case <-timeoutC:
-			return fmt.Errorf("timed out")
+			return fmt.Errorf("timed out. no leader")
 		case <-ticker.C:
 			if le, _ := d.raft.LeaderWithID(); le != "" {
 				return nil

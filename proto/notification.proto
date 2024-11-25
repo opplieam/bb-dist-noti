@@ -9,3 +9,13 @@ message Server {
   string rpc_addr = 2;
   bool is_leader = 3;
 }
+
+message GetServersRequest {}
+
+message GetServersResponse {
+  repeated Server servers = 1;
+}
+
+service Notification {
+  rpc GetServers(GetServersRequest) returns (GetServersResponse) {}
+}
