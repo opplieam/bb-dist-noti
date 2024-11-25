@@ -23,7 +23,7 @@ build-proto: clean-directory protoc-go
 # ------------------------ Proto End ------------------------
 
 # ------------------------ TLS Start ------------------------
-CONFIG_PATH=./tls
+CONFIG_PATH=${HOME}/.bb-noti/
 
 .PHONY: init-dir
 init-dir:

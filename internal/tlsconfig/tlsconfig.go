@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/opplieam/bb-dist-noti/pkg/projectpath"
 )
 
 var (
@@ -21,11 +19,14 @@ var (
 
 // getPath returns the full path to a file within the project's tls directory
 func getPath(filename string) string {
-	projectRoot, err := projectpath.GetProjectRoot()
+	if dir := os.Getenv("TLS_DIR"); dir != "" {
+		return filepath.Join(dir, filename)
+	}
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
-	return filepath.Join(projectRoot, "tls", filename)
+	return filepath.Join(homeDir, ".bb-noti", filename)
 }
 
 // -------------------------------------------------------

@@ -103,7 +103,7 @@ func (m *Membership) eventHandler() {
 		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, member := range e.(serf.MemberEvent).Members {
 				if m.isLocal(member) {
-					continue
+					return
 				}
 				if err := m.handler.Leave(member.Name); err != nil {
 					m.logError(err, "failed to leave", member)

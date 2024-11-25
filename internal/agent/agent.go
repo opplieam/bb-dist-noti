@@ -12,7 +12,6 @@ Key Components:
 - **Distributed Store**: Implements a distributed append only store using Raft consensus algorithm for fault-tolerant data storage.
 
 - **gRPC Server**: Provides inter-server communication for the notification system, secured with TLS if configured.
-
 - **Membership Service**: Manages node discovery and membership of the cluster using Serf.
 
 The Agent lifecycle includes methods to start serving (`NewAgent`) and gracefully shut down (`Shutdown`). It ensures that all components
@@ -200,7 +199,7 @@ func (a *Agent) setupGRPCServer() error {
 	a.logger.Info("setup grpc", slog.String("Addr", grpcLn.Addr().String()))
 	go func() {
 		if err := a.gServer.Serve(grpcLn); err != nil {
-			a.logger.Error("gRPC server error", slog.String("error", err.Error()))
+			//a.logger.Error("gRPC server error", slog.String("error", err.Error()))
 			_ = a.Shutdown()
 		}
 	}()
