@@ -2,3 +2,6 @@ bin/
 
 # IDE
 .idea
+
+tls/*.csr
+tls/*.pem
