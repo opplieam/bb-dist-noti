@@ -74,6 +74,7 @@ func (m *Membership) setupSerf() error {
 		return err
 	}
 	go m.eventHandler()
+	// TODO: More robust joining cluster
 	if m.Config.StartJoinAddr != nil {
 		_, err = m.serf.Join(m.Config.StartJoinAddr, true)
 		if err != nil {
