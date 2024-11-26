@@ -13,6 +13,7 @@ type Config struct {
 	PeerTLSConfig   *tls.Config
 	DataDir         string
 	HttpConfig      httpserver.Config
+	NatsAddr        string
 	SerfAddr        string
 	RPCPort         int
 	NodeName        string

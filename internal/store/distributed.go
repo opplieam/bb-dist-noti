@@ -119,6 +119,7 @@ func (d *DistributedStore) setupRaft() error {
 	raftConfig := raft.DefaultConfig()
 	// unique ID for this server
 	raftConfig.LocalID = d.config.Raft.LocalID
+	raftConfig.NotifyCh = d.config.Raft.NotifyCh
 
 	// Setup Raft
 	d.raft, err = raft.NewRaft(

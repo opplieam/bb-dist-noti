@@ -30,10 +30,11 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/hashicorp/raft"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
 	"github.com/opplieam/bb-dist-noti/internal/grpcserver"
 	"github.com/opplieam/bb-dist-noti/internal/httpserver"
@@ -49,9 +50,13 @@ type Agent struct {
 
 	mux        cmux.CMux
 	store      *store.DistributedStore
+	leaderCh   chan bool
 	gServer    *grpc.Server
 	hServer    *http.Server
 	membership *discovery.Membership
+
+	natCon *nats.Conn
+	catCtx jetstream.ConsumeContext
 
 	shutdown bool
 	//shutdownCh chan struct{}
@@ -63,12 +68,14 @@ type Agent struct {
 // and starts serving them in separate goroutines.
 func NewAgent(config Config) (*Agent, error) {
 	a := &Agent{
-		Config: config,
+		Config:   config,
+		leaderCh: make(chan bool, 1),
 		//shutdownCh: make(chan struct{}),
 	}
 	setup := []func() error{
 		a.setupLogger,
 		a.setupHTTPServer,
+		a.setupJetStream,
 		a.setupMux,
 		a.setupStore,
 		a.setupGRPCServer,
@@ -109,12 +116,23 @@ func (a *Agent) Shutdown() error {
 			}
 			return nil
 		},
+		func() error {
+			if a.natCon != nil {
+				a.catCtx.Stop()
+				a.natCon.Close()
+			}
+			return nil
+		},
 		a.membership.Leave,
 		func() error {
 			a.gServer.GracefulStop()
 			return nil
 		},
-		a.store.Close,
+		func() error {
+			err := a.store.Close()
+			close(a.leaderCh)
+			return err
+		},
 		func() error {
 			a.mux.Close()
 			return nil
@@ -198,6 +216,7 @@ func (a *Agent) setupStore() error {
 	storeConfig.Raft.Addr = rpcAddr
 	storeConfig.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	storeConfig.Raft.Bootstrap = a.Config.Bootstrap
+	storeConfig.Raft.NotifyCh = a.leaderCh
 
 	a.logger.Info("setup store", slog.String("Addr", rpcAddr))
 	a.store, err = store.NewDistributedStore(a.Config.DataDir, storeConfig)
@@ -206,11 +225,71 @@ func (a *Agent) setupStore() error {
 	}
 	// Bootstrap cluster for only first time
 	// Servers = 1 only for the first time of running
-	servers, _ := a.store.GetServers()
-	if a.Config.Bootstrap && len(servers) == 1 {
-		err = a.store.WaitForLeader(3 * time.Second)
-	}
-	return err
+	//servers, _ := a.store.GetServers()
+	//if a.Config.Bootstrap && len(servers) == 1 {
+	//	err = a.store.WaitForLeader(3 * time.Second)
+	//}
+	return nil
+}
+
+func (a *Agent) setupJetStream() error {
+	// Only Leader can establish jet stream connection
+	go func() {
+		for isLeader := range a.leaderCh {
+			if isLeader {
+				a.logger.Info("Node become leader", slog.String("leader", a.Config.NodeName))
+				var err error
+				a.natCon, err = nats.Connect(a.Config.NatsAddr)
+				if err != nil {
+					a.logger.Error("failed to connect to nats", slog.String("error", err.Error()))
+					return
+				}
+				js, err := jetstream.New(a.natCon)
+				if err != nil {
+					a.logger.Error("failed to connect to jetstream", slog.String("error", err.Error()))
+					return
+				}
+				ctx := context.Background()
+				stream, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+					Name:        "update",
+					Description: "Message for update",
+					Subjects: []string{
+						"update.>",
+					},
+				})
+				if err != nil {
+					a.logger.Error("failed to create stream", slog.String("error", err.Error()))
+					return
+				}
+				consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
+					Name:    "update_processor",
+					Durable: "update_processor",
+				})
+				if err != nil {
+					a.logger.Error("failed to create consumer stream", slog.String("error", err.Error()))
+					return
+				}
+				a.catCtx, err = consumer.Consume(func(msg jetstream.Msg) {
+					a.logger.Info(string(msg.Data()))
+					_ = msg.Ack()
+				})
+				if err != nil {
+					a.logger.Error("failed to create consumer stream", slog.String("error", err.Error()))
+					return
+				}
+				defer a.catCtx.Stop()
+
+			} else {
+				a.logger.Info("Node lost leadership", slog.String("leader", a.Config.NodeName))
+				if a.natCon != nil {
+					a.catCtx.Stop()
+					a.natCon.Close()
+				}
+
+			}
+		}
+	}()
+	return nil
 }
 
 // setupGRPCServer initializes and starts the gRPC server.

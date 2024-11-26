@@ -59,6 +59,8 @@ func setupFlags(cmd *cobra.Command) error {
 	cmd.Flags().Duration("http-idle-timeout", 600*time.Second, "Http Idle timeout")
 	cmd.Flags().Duration("http-shutdown-timeout", 20*time.Second, "Http Shutdown timeout")
 
+	cmd.Flags().String("nats-addr", "nats://localhost:4222", "NATS server address")
+
 	cmd.Flags().String("server-tls-cert-file", "", "Path to server tls cert")
 	cmd.Flags().String("server-tls-key-file", "", "Path to server tls key")
 	cmd.Flags().String("server-tls-ca-file", "", "Path to server certificate authority")
@@ -81,6 +83,8 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 	c.AConfig.HttpConfig.WriteTimeout = viper.GetDuration("http-write-timeout")
 	c.AConfig.HttpConfig.IdleTimeout = viper.GetDuration("http-idle-timeout")
 	c.AConfig.HttpConfig.ShutdownTimeout = viper.GetDuration("http-shutdown-timeout")
+
+	c.AConfig.NatsAddr = viper.GetString("nats-addr")
 
 	// Setup TLS
 	c.ServerTLSPath.CertFile = viper.GetString("server-tls-cert-file")

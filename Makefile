@@ -61,6 +61,7 @@ run-node-1:
 	go run cmd/noti/main.go \
 		--data-dir=./dev-data/node1 \
 		--node-name=node1 \
+		--http-addr=":8402" \
 		--serf-addr=127.0.0.1:8401 \
 		--rpc-port=8400 \
 		--bootstrap=true \
@@ -71,6 +72,7 @@ run-node-2:
 	go run cmd/noti/main.go \
 		--data-dir=./dev-data/node2 \
 		--node-name=node2 \
+		--http-addr=":8502" \
 		--serf-addr=127.0.0.1:8501 \
 		--rpc-port=8500 \
 		--start-join-addrs=127.0.0.1:8401
@@ -80,7 +82,19 @@ run-node-3:
 	go run cmd/noti/main.go \
 		--data-dir=./dev-data/node3 \
 		--node-name=node3 \
+		--http-addr=":8602" \
 		--serf-addr=127.0.0.1:8601 \
 		--rpc-port=8600 \
 		--start-join-addrs=127.0.0.1:8401
 # ------------------------ Run Node Locally End ----------------------------
+
+# ------------------------ Run NATs Start ----------------------------------
+.PHONY: run-jet-stream
+run-jet-stream:
+	docker run -p 4222:4222 nats -js
+
+.PHONY: run-mock-pub
+run-mock-pub:
+	go run cmd/mockpub/main.go
+
+# ------------------------ Run NATs End ----------------------------------
