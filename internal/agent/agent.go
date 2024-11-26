@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/hashicorp/raft"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
 	"github.com/opplieam/bb-dist-noti/internal/grpcserver"
@@ -194,6 +195,15 @@ func (a *Agent) setupGRPCServer() error {
 		creds := credentials.NewTLS(a.Config.ServerTLSConfig)
 		opts = append(opts, grpc.Creds(creds))
 	}
+
+	loggingOpt := []logging.Option{
+		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
+	}
+	serverOpt := grpc.ChainUnaryInterceptor(
+		logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...),
+	)
+
+	opts = append(opts, serverOpt)
 
 	gServerConfig := &grpcserver.NotiConfig{ServerRetriever: a.store}
 	a.gServer = grpcserver.NewGrpcServer(gServerConfig, opts...)
