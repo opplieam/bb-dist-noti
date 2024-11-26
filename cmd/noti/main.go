@@ -7,6 +7,7 @@ import (
 	"path"
 	"regexp"
 	"syscall"
+	"time"
 
 	"github.com/opplieam/bb-dist-noti/internal/agent"
 	"github.com/opplieam/bb-dist-noti/internal/tlsconfig"
@@ -52,6 +53,12 @@ func setupFlags(cmd *cobra.Command) error {
 	cmd.Flags().Bool("bootstrap", false, "Bootstrap the cluster")
 	cmd.Flags().Bool("cluster-run", false, "Is Running in cluster")
 
+	cmd.Flags().String("http-addr", ":5000", "Http listen address")
+	cmd.Flags().Duration("http-write-timeout", 60*time.Second, "Http Write timeout")
+	cmd.Flags().Duration("http-read-timeout", 10*time.Second, "Http Read timeout")
+	cmd.Flags().Duration("http-idle-timeout", 600*time.Second, "Http Idle timeout")
+	cmd.Flags().Duration("http-shutdown-timeout", 20*time.Second, "Http Shutdown timeout")
+
 	cmd.Flags().String("server-tls-cert-file", "", "Path to server tls cert")
 	cmd.Flags().String("server-tls-key-file", "", "Path to server tls key")
 	cmd.Flags().String("server-tls-ca-file", "", "Path to server certificate authority")
@@ -68,6 +75,12 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 	c.AConfig.SerfAddr = viper.GetString("serf-addr")
 	c.AConfig.RPCPort = viper.GetInt("rpc-port")
 	c.AConfig.Bootstrap = viper.GetBool("bootstrap")
+
+	c.AConfig.HttpConfig.Addr = viper.GetString("http-addr")
+	c.AConfig.HttpConfig.ReadTimeout = viper.GetDuration("http-read-timeout")
+	c.AConfig.HttpConfig.WriteTimeout = viper.GetDuration("http-write-timeout")
+	c.AConfig.HttpConfig.IdleTimeout = viper.GetDuration("http-idle-timeout")
+	c.AConfig.HttpConfig.ShutdownTimeout = viper.GetDuration("http-shutdown-timeout")
 
 	// Setup TLS
 	c.ServerTLSPath.CertFile = viper.GetString("server-tls-cert-file")

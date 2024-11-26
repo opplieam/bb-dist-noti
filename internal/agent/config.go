@@ -4,12 +4,15 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+
+	"github.com/opplieam/bb-dist-noti/internal/httpserver"
 )
 
 type Config struct {
 	ServerTLSConfig *tls.Config
 	PeerTLSConfig   *tls.Config
 	DataDir         string
+	HttpConfig      httpserver.Config
 	SerfAddr        string
 	RPCPort         int
 	NodeName        string

@@ -22,9 +22,12 @@ package agent
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -33,6 +36,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
 	"github.com/opplieam/bb-dist-noti/internal/grpcserver"
+	"github.com/opplieam/bb-dist-noti/internal/httpserver"
 	"github.com/opplieam/bb-dist-noti/internal/store"
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
@@ -46,6 +50,7 @@ type Agent struct {
 	mux        cmux.CMux
 	store      *store.DistributedStore
 	gServer    *grpc.Server
+	hServer    *http.Server
 	membership *discovery.Membership
 
 	shutdown bool
@@ -63,6 +68,7 @@ func NewAgent(config Config) (*Agent, error) {
 	}
 	setup := []func() error{
 		a.setupLogger,
+		a.setupHTTPServer,
 		a.setupMux,
 		a.setupStore,
 		a.setupGRPCServer,
@@ -94,6 +100,15 @@ func (a *Agent) Shutdown() error {
 	//close(a.shutdownCh)
 
 	shutdown := []func() error{
+		func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), a.Config.HttpConfig.ShutdownTimeout)
+			defer cancel()
+			if err := a.hServer.Shutdown(ctx); err != nil {
+				_ = a.hServer.Close()
+				return fmt.Errorf("http server could not shutdown gratefuly: %w", err)
+			}
+			return nil
+		},
 		a.membership.Leave,
 		func() error {
 			a.gServer.GracefulStop()
@@ -128,6 +143,17 @@ func (a *Agent) setupLogger() error {
 	slog.SetDefault(logger)
 
 	a.logger = slog.With("component", "agent")
+	return nil
+}
+
+func (a *Agent) setupHTTPServer() error {
+	a.hServer = httpserver.NewServer(a.Config.HttpConfig)
+	a.logger.Info("setup http server", slog.String("address", a.Config.HttpConfig.Addr))
+	go func() {
+		if err := a.hServer.ListenAndServe(); err != nil {
+			_ = a.Shutdown()
+		}
+	}()
 	return nil
 }
 
