@@ -28,6 +28,7 @@ type Config struct {
 	SerfAddr      string
 	Tags          map[string]string
 	StartJoinAddr []string
+	Bootstrap     bool
 }
 
 // Membership manages membership of nodes using Serf and interacts with a custom Handler.
@@ -74,12 +75,13 @@ func (m *Membership) setupSerf() error {
 		return err
 	}
 	go m.eventHandler()
+
 	// TODO: More robust joining cluster
-	if m.Config.StartJoinAddr != nil {
-		_, err = m.serf.Join(m.Config.StartJoinAddr, true)
-		if err != nil {
-			return err
-		}
+	_, err = m.serf.Join(m.Config.StartJoinAddr, true)
+	// Allow Bootstrap node to define StartJoinAddr,
+	// Because Bootstrap node can be down and need to rejoin the cluster
+	if err != nil && !m.Config.Bootstrap {
+		return err
 	}
 	return nil
 }

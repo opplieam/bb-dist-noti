@@ -49,3 +49,38 @@ gencert:
 			tls/client-csr.json | cfssljson -bare client
 	mv *.pem *.csr ${CONFIG_PATH}
 # ------------------------ TLS End --------------------------
+
+# ------------------------ Run Node Locally Start --------------------------
+
+.PHONY: rm-data-dir
+rm-data-dir:
+	rm -rf ./dev-data
+
+.PHONY: run-node-1
+run-node-1:
+	go run cmd/noti/main.go \
+		--data-dir=./dev-data/node1 \
+		--node-name=node1 \
+		--serf-addr=127.0.0.1:8401 \
+		--rpc-port=8400 \
+		--bootstrap=true \
+		--start-join-addrs=127.0.0.1:8402
+
+.PHONY: run-node-2
+run-node-2:
+	go run cmd/noti/main.go \
+		--data-dir=./dev-data/node2 \
+		--node-name=node2 \
+		--serf-addr=127.0.0.1:8501 \
+		--rpc-port=8500 \
+		--start-join-addrs=127.0.0.1:8401
+
+.PHONY: run-node-3
+run-node-3:
+	go run cmd/noti/main.go \
+		--data-dir=./dev-data/node3 \
+		--node-name=node3 \
+		--serf-addr=127.0.0.1:8601 \
+		--rpc-port=8600 \
+		--start-join-addrs=127.0.0.1:8401
+# ------------------------ Run Node Locally End ----------------------------

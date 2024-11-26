@@ -177,7 +177,10 @@ func (a *Agent) setupStore() error {
 	if err != nil {
 		return err
 	}
-	if a.Config.Bootstrap {
+	// Bootstrap cluster for only first time
+	// Servers = 1 only for the first time of running
+	servers, _ := a.store.GetServers()
+	if a.Config.Bootstrap && len(servers) == 1 {
 		err = a.store.WaitForLeader(3 * time.Second)
 	}
 	return err
@@ -220,6 +223,7 @@ func (a *Agent) setupMembership() error {
 			"rpc_addr": rpcAddr,
 		},
 		StartJoinAddr: a.Config.StartJoinAddrs,
+		Bootstrap:     a.Config.Bootstrap,
 	})
 	return err
 }
