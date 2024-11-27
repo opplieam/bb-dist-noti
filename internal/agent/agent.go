@@ -92,7 +92,13 @@ func (a *Agent) Shutdown() error {
 			}
 			return nil
 		},
-		a.js.Close,
+		func() error {
+			if a.js == nil {
+				a.logger.Debug("not a leader, skip close Jetstream")
+				return nil
+			}
+			return a.js.Close()
+		},
 		a.cState.Close,
 		a.membership.Leave,
 		a.store.Close,
