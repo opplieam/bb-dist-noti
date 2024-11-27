@@ -1,6 +1,8 @@
 package httpserver
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +23,7 @@ func (h *handler) SSE(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 
 	// TODO: Add real User ID
-	userKey := c.Query("user_id")
+	userKey, _ := generateUniqueID()
 	clientCh := h.clientState.AddClient(userKey)
 	defer close(clientCh)
 	defer h.clientState.RemoveClient(userKey)
@@ -43,4 +45,18 @@ loop:
 			break loop
 		}
 	}
+}
+
+// generateUniqueID generates a short, URL-safe unique ID
+func generateUniqueID() (string, error) {
+	// Generate 5 random bytes
+	bytes := make([]byte, 5)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
+
+	// Encode to URL-safe Base64 (removes padding "=")
+	id := base64.RawURLEncoding.EncodeToString(bytes)
+	return id, nil
 }
