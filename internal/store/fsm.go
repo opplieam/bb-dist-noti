@@ -45,6 +45,9 @@ func NewFiniteState(limit int, cState *clientstate.ClientState) *FiniteState {
 // Apply is invoked when Raft applies a log entry to the FSM.
 // It returns either nil (indicating successful application) or an error.
 func (s *FiniteState) Apply(record *raft.Log) interface{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	buf := record.Data
 	commandType := CommandType(buf[0])
 
@@ -53,9 +56,6 @@ func (s *FiniteState) Apply(record *raft.Log) interface{} {
 	if err != nil {
 		return err
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	switch commandType {
 	case CommandTypeAdd:

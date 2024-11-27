@@ -42,5 +42,10 @@ func (s *ClientState) RemoveClient(id string) {
 func (s *ClientState) GetAllClients() Clients {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.clients
+	// Create a copy of the map
+	copiedClients := make(Clients)
+	for key, value := range s.clients {
+		copiedClients[key] = value
+	}
+	return copiedClients
 }

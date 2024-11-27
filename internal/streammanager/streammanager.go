@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -32,6 +33,7 @@ type Manager struct {
 	js       jetstream.JetStream
 	consumer jetstream.Consumer
 	logger   *slog.Logger
+	mu       sync.Mutex
 }
 
 func NewManager(ctx context.Context, cfg Config, cmd Command) (*Manager, error) {
@@ -62,6 +64,8 @@ func NewManager(ctx context.Context, cfg Config, cmd Command) (*Manager, error) 
 }
 
 func (m *Manager) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.conCtx != nil {
 		m.conCtx.Stop()
 	}
@@ -112,6 +116,8 @@ func (m *Manager) ConsumeMessages() error {
 		return fmt.Errorf("failed to create consumer stream: %w", err)
 	}
 
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.conCtx = ctx
 
 	return nil

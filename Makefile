@@ -86,6 +86,10 @@ run-node-3:
 		--serf-addr=127.0.0.1:8601 \
 		--rpc-port=8600 \
 		--start-join-addrs=127.0.0.1:8401
+
+.PHONY: test
+test:
+	go test -race ./...
 # ------------------------ Run Node Locally End ----------------------------
 
 # ------------------------ Run NATs Start ----------------------------------
