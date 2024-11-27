@@ -171,6 +171,7 @@ func (d *DistributedStore) Close() error {
 }
 
 // AddCommand applies an add command to the Raft consensus group.
+// TODO: Change msg to byte type
 func (d *DistributedStore) AddCommand(msg *api.CategoryMessage) error {
 	b, err := newCommand(CommandTypeAdd, msg)
 	if err != nil {
@@ -183,6 +184,7 @@ func (d *DistributedStore) AddCommand(msg *api.CategoryMessage) error {
 }
 
 // BroadcastCommand applies a broadcast command to the Raft consensus group.
+// TODO: Change msg to byte type
 func (d *DistributedStore) BroadcastCommand(msg *api.CategoryMessage) error {
 	b, err := newCommand(CommandTypeBroadcast, msg)
 	if err != nil {

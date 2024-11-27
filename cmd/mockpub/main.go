@@ -26,11 +26,16 @@ func main() {
 	}
 	ctx := context.Background()
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name:        "update",
-		Description: "Message for update",
+		Name:        "jobs",
+		Description: "Stream for handling job notifications with work queue semantics and a 7-day retention policy.",
 		Subjects: []string{
-			"update.>",
+			"jobs.noti.>",
 		},
+		Storage:   jetstream.FileStorage,
+		Retention: jetstream.WorkQueuePolicy,
+		Discard:   jetstream.DiscardNew,
+		MaxMsgs:   20000,
+		MaxAge:    7 * 24 * time.Hour,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +52,7 @@ func main() {
 		}
 
 		b, _ := proto.Marshal(msg)
-		_, err = js.Publish(ctx, fmt.Sprintf("update.category.%d", i), b)
+		_, err = js.Publish(ctx, fmt.Sprintf("jobs.noti.%d", i), b)
 		if err != nil {
 			log.Println("Error publishing message: ", err)
 			continue

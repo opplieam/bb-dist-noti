@@ -1,23 +1,3 @@
-/*
-Package agent provides the implementation of an Agent that integrates various components for distributed notification system.
-The Agent is responsible for setting up and managing multiple services including gRPC server, membership discovery,
-distributed store using Raft consensus, and multiplexing network protocols.
-
-Key Components:
-
-- **Logger**: Configured based on the environment (production or development) to log information or debug details respectively.
-
-- **CMux Multiplexer**: Handles multiple network protocols over a single listener, routing connections to appropriate services.
-
-- **Distributed Store**: Implements a distributed append only store using Raft consensus algorithm for fault-tolerant data storage.
-
-- **gRPC Server**: Provides inter-server communication for the notification system, secured with TLS if configured.
-- **Membership Service**: Manages node discovery and membership of the cluster using Serf.
-
-The Agent lifecycle includes methods to start serving (`NewAgent`) and gracefully shut down (`Shutdown`). It ensures that all components
-are properly initialized and started in separate goroutines to maintain non-blocking operation. During shutdown, it handles each component's
-termination sequence to ensure data integrity and prevent any ongoing requests from failing abruptly.
-*/
 package agent
 
 import (
@@ -33,12 +13,11 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/hashicorp/raft"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
 	"github.com/opplieam/bb-dist-noti/internal/grpcserver"
 	"github.com/opplieam/bb-dist-noti/internal/httpserver"
 	"github.com/opplieam/bb-dist-noti/internal/store"
+	"github.com/opplieam/bb-dist-noti/internal/streammanager"
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -55,17 +34,13 @@ type Agent struct {
 	hServer    *http.Server
 	membership *discovery.Membership
 
-	natCon *nats.Conn
-	catCtx jetstream.ConsumeContext
+	js *streammanager.Manager
 
 	shutdown bool
 	//shutdownCh chan struct{}
 	shutdownMu sync.Mutex
 }
 
-// NewAgent creates a new instance of the Agent struct with the provided configuration.
-// It initializes various components such as logger, multiplexer, store, gRPC server, and membership,
-// and starts serving them in separate goroutines.
 func NewAgent(config Config) (*Agent, error) {
 	a := &Agent{
 		Config:   config,
@@ -95,8 +70,6 @@ func NewAgent(config Config) (*Agent, error) {
 	return a, nil
 }
 
-// Shutdown gracefully shuts down the agent by stopping all components in a specific order.
-// It ensures that no new requests are accepted and existing ones are processed before shutting down.
 func (a *Agent) Shutdown() error {
 	a.shutdownMu.Lock()
 	defer a.shutdownMu.Unlock()
@@ -116,24 +89,15 @@ func (a *Agent) Shutdown() error {
 			}
 			return nil
 		},
-		func() error {
-			if a.natCon != nil {
-				a.catCtx.Stop()
-				a.natCon.Close()
-			}
-			return nil
-		},
+		a.js.Close,
 		a.membership.Leave,
-		func() error {
-			a.gServer.GracefulStop()
-			return nil
-		},
 		func() error {
 			err := a.store.Close()
 			close(a.leaderCh)
 			return err
 		},
 		func() error {
+			a.gServer.GracefulStop()
 			a.mux.Close()
 			return nil
 		},
@@ -147,7 +111,6 @@ func (a *Agent) Shutdown() error {
 	return nil
 }
 
-// setupLogger initializes the logger instance based on the agent's configuration.
 func (a *Agent) setupLogger() error {
 	var logger *slog.Logger
 	if a.Config.Env == "prod" {
@@ -175,7 +138,6 @@ func (a *Agent) setupHTTPServer() error {
 	return nil
 }
 
-// setupMux initializes the cmux multiplexer which handles multiple network protocols over a single listener.
 func (a *Agent) setupMux() error {
 	rpcAddr, err := a.Config.RPCAddr()
 	a.logger.Info("setup mux", slog.String("Addr", rpcAddr))
@@ -190,9 +152,6 @@ func (a *Agent) setupMux() error {
 	return nil
 }
 
-// setupStore initializes the distributed store using the Raft consensus algorithm.
-// It configures the necessary components for communication, including setting up a listener
-// specifically for Raft RPCs using cmux to handle multiple network protocols over a single listener.
 func (a *Agent) setupStore() error {
 	// Create a custom matcher function for the cmux multiplexer to identify Raft RPC connections
 	raftLn := a.mux.Match(func(reader io.Reader) bool {
@@ -238,62 +197,36 @@ func (a *Agent) setupJetStream() error {
 		for isLeader := range a.leaderCh {
 			if isLeader {
 				a.logger.Info("Node become leader", slog.String("leader", a.Config.NodeName))
-				var err error
-				a.natCon, err = nats.Connect(a.Config.NatsAddr)
-				if err != nil {
-					a.logger.Error("failed to connect to nats", slog.String("error", err.Error()))
-					return
-				}
-				js, err := jetstream.New(a.natCon)
-				if err != nil {
-					a.logger.Error("failed to connect to jetstream", slog.String("error", err.Error()))
-					return
-				}
-				ctx := context.Background()
-				stream, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-					Name:        "update",
-					Description: "Message for update",
+				cfg := streammanager.Config{
+					NatsAddr:    a.Config.NatsAddr,
+					StreamName:  "jobs",
+					Description: "Consumer for processing category messages with retry and backoff strategy.",
 					Subjects: []string{
-						"update.>",
+						"jobs.noti.>",
 					},
-				})
+					ConsumerName: "worker_noti",
+				}
+				var err error
+				a.js, err = streammanager.NewManager(context.Background(), cfg, a.store)
 				if err != nil {
-					a.logger.Error("failed to create stream", slog.String("error", err.Error()))
+					a.logger.Error("create stream manager", slog.String("error", err.Error()))
 					return
 				}
-				consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-					Name:    "update_processor",
-					Durable: "update_processor",
-				})
+				err = a.js.ConsumeMessages()
 				if err != nil {
-					a.logger.Error("failed to create consumer stream", slog.String("error", err.Error()))
+					a.logger.Error("consume messages", slog.String("error", err.Error()))
 					return
 				}
-				a.catCtx, err = consumer.Consume(func(msg jetstream.Msg) {
-					a.logger.Info(string(msg.Data()))
-					_ = msg.Ack()
-				})
-				if err != nil {
-					a.logger.Error("failed to create consumer stream", slog.String("error", err.Error()))
-					return
-				}
-				defer a.catCtx.Stop()
 
 			} else {
 				a.logger.Info("Node lost leadership", slog.String("leader", a.Config.NodeName))
-				if a.natCon != nil {
-					a.catCtx.Stop()
-					a.natCon.Close()
-				}
-
+				_ = a.js.Close()
 			}
 		}
 	}()
 	return nil
 }
 
-// setupGRPCServer initializes and starts the gRPC server.
-// This gRPC server is intended to be used between servers for inter-server communication.
 func (a *Agent) setupGRPCServer() error {
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
@@ -324,7 +257,6 @@ func (a *Agent) setupGRPCServer() error {
 	return nil
 }
 
-// setupMembership initializes the membership service using Serf.
 func (a *Agent) setupMembership() error {
 	rpcAddr, err := a.Config.RPCAddr()
 	if err != nil {
@@ -343,7 +275,6 @@ func (a *Agent) setupMembership() error {
 	return err
 }
 
-// serve starts the cmux multiplexer to handle incoming connections.
 func (a *Agent) serve() error {
 	if err := a.mux.Serve(); err != nil {
 		return a.Shutdown()
