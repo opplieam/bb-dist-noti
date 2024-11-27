@@ -102,3 +102,30 @@ run-mock-pub:
 	go run cmd/mockpub/main.go
 
 # ------------------------ Run NATs End ----------------------------------
+
+# ------------------------ Build Start ----------------------------------
+BASE_IMAGE_NAME 	:= opplieam
+SERVICE_NAME    	:= bb-noti
+VERSION         	:= "0.0.1-$(shell git rev-parse --short HEAD)"
+VERSION_DEV         := "cluster-dev"
+SERVICE_IMAGE   	:= $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION)
+SERVICE_IMAGE_DEV   := $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION_DEV)
+
+.PHONY: docker-build-dev
+docker-build-dev:
+	@eval $$(minikube docker-env);\
+	docker build -t $(SERVICE_IMAGE_DEV) .
+
+.PHONY: docker-build-prod
+docker-build-prod:
+	@eval $$(minikube docker-env);\
+	docker build -t $(SERVICE_IMAGE) .
+
+.PHONY: docker-push
+docker-push:
+	docker push $(SERVICE_IMAGE)
+
+.PHONY: docker-build-push
+docker-build-push: docker-build-prod docker-push
+
+# ------------------------ Build End ------------------------------------
