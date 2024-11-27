@@ -1,3 +1,4 @@
+// Package streammanager manages the NATS JetStream consumer for processing messages.
 package streammanager
 
 import (
@@ -36,6 +37,7 @@ type Manager struct {
 	mu       sync.Mutex
 }
 
+// NewManager creates and initializes a new Manager instance with the provided configuration and command interface.
 func NewManager(ctx context.Context, cfg Config, cmd Command) (*Manager, error) {
 	conn, err := nats.Connect(cfg.NatsAddr)
 	if err != nil {
@@ -63,6 +65,7 @@ func NewManager(ctx context.Context, cfg Config, cmd Command) (*Manager, error) 
 	return manager, nil
 }
 
+// Close gracefully shuts down the NATS connection and stops any ongoing consumer operations.
 func (m *Manager) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -75,6 +78,7 @@ func (m *Manager) Close() error {
 	return nil
 }
 
+// setupConsumer creates or updates a durable consumer with the specified configuration.
 func (m *Manager) setupConsumer(ctx context.Context, cfg Config) error {
 	consumer, err := m.js.CreateOrUpdateConsumer(ctx, cfg.StreamName, jetstream.ConsumerConfig{
 		Name:        cfg.ConsumerName,
@@ -96,6 +100,7 @@ func (m *Manager) setupConsumer(ctx context.Context, cfg Config) error {
 	return nil
 }
 
+// ConsumeMessages starts consuming messages from the configured NATS stream and processes them using the command interface.
 func (m *Manager) ConsumeMessages() error {
 	m.logger.Info("consuming messages")
 	ctx, err := m.consumer.Consume(func(msg jetstream.Msg) {

@@ -45,6 +45,7 @@ func setupFlags(cmd *cobra.Command) error {
 		return err
 	}
 	dataDir := path.Join(os.TempDir(), "bb-noti")
+	cmd.Flags().String("env", "dev", "environment to use")
 	cmd.Flags().String("data-dir", dataDir, "Directory to store Raft log consensus data")
 	cmd.Flags().String("node-name", hostname, "Unique server ID")
 	cmd.Flags().String("serf-addr", "127.0.0.1:8401", "Address to bind Serf on")
@@ -74,6 +75,7 @@ func setupFlags(cmd *cobra.Command) error {
 }
 
 func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
+	c.AConfig.Env = viper.GetString("env")
 	c.AConfig.DataDir = viper.GetString("data-dir")
 	c.AConfig.NodeName = viper.GetString("node-name")
 	c.AConfig.SerfAddr = viper.GetString("serf-addr")

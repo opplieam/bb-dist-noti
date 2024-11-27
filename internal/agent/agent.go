@@ -1,3 +1,21 @@
+/*
+Package agent provides a high Availability Agent for distributed systems.
+
+The agent manages client connections, handles HTTP requests, and sets up gRPC
+and membership services using Raft consensus and Serf-based discovery.
+It logs various events and errors during its operation and ensures proper shutdown procedures to close the store gracefully.
+
+Key Components:
+1. Client Connection Management: The agent maintains active connections with clients and handles reconnection logic in case of failures.
+2. HTTP Request Handling: It processes incoming HTTP requests, routing them to appropriate handlers based on the request path and method.
+3. gRPC Service Setup: The agent configures a gRPC server that exposes APIs for distributed system operations.
+4. Membership Service: Utilizing Serf, the agent manages node discovery and failure detection in the cluster.
+5. Raft Consensus: For maintaining consistent state across nodes, the agent uses the Raft consensus algorithm to handle leader election and log replication.
+6. Logging: Comprehensive logging is implemented to track events such as request handling, connection management, and system errors.
+7. Graceful Shutdown: The agent ensures a smooth shutdown of services when the application receives an interrupt or termination signal.
+
+This package is designed to be highly available and fault-tolerant, making it suitable for use in critical distributed systems where reliability is paramount.
+*/
 package agent
 
 import (
@@ -43,6 +61,12 @@ type Agent struct {
 	shutdownMu sync.Mutex
 }
 
+// NewAgent creates and initializes a new instance of the Agent.
+// It sets up various components such as logger, client state, HTTP server,
+// JetStream, cmux multiplexer, distributed store, gRPC server, and membership.
+// The setup functions are executed in sequence, and if any function fails,
+// an error is returned. The serve method runs in a separate goroutine to start
+// handling incoming connections. The initialized agent instance is returned on success.
 func NewAgent(config Config) (*Agent, error) {
 	a := &Agent{
 		Config:   config,
@@ -73,6 +97,10 @@ func NewAgent(config Config) (*Agent, error) {
 	return a, nil
 }
 
+// Shutdown gracefully shuts down the agent.
+// It ensures that all resources are properly released in a controlled manner,
+// including closing HTTP server, JetStream connection, client state, membership,
+// distributed store, leader channel, gRPC server, and cmux multiplexer.
 func (a *Agent) Shutdown() error {
 	a.shutdownMu.Lock()
 	defer a.shutdownMu.Unlock()
@@ -121,6 +149,9 @@ func (a *Agent) Shutdown() error {
 	return nil
 }
 
+// setupLogger sets up the logger for the agent based on the environment configuration.
+// It creates either a JSON handler for production environments or a text handler for other environments.
+// The logger is set as the default logger and includes a component tag.
 func (a *Agent) setupLogger() error {
 	var logger *slog.Logger
 	if a.Config.Env == "prod" {
@@ -137,11 +168,17 @@ func (a *Agent) setupLogger() error {
 	return nil
 }
 
+// setupClientState initializes the client state for the agent.
+// It creates a new instance of ClientState which is used to manage client-connection.
 func (a *Agent) setupClientState() error {
 	a.cState = clientstate.NewClientState()
 	return nil
 }
 
+// setupHTTPServer sets up the HTTP server for the agent.
+// It configures the HTTP server with necessary parameters from the configuration,
+// specifically enabling Server-Sent Events (SSE) for real-time communication.
+// The server runs in a separate goroutine and logs its address for reference.
 func (a *Agent) setupHTTPServer() error {
 	a.Config.HttpConfig.CState = a.cState
 	a.hServer = httpserver.NewServer(a.Config.HttpConfig)
@@ -154,6 +191,9 @@ func (a *Agent) setupHTTPServer() error {
 	return nil
 }
 
+// setupMux initializes the cmux multiplexer for handling different types of connections.
+// It listens on the RPC address specified in the configuration, creates a new multiplexer instance,
+// and logs the address for reference.
 func (a *Agent) setupMux() error {
 	rpcAddr, err := a.Config.RPCAddr()
 	a.logger.Info("setup mux", slog.String("Addr", rpcAddr))
@@ -168,6 +208,17 @@ func (a *Agent) setupMux() error {
 	return nil
 }
 
+// setupStore initializes the distributed store for the agent.
+// It performs the following steps:
+//  1. Creates a custom matcher function for the cmux multiplexer to identify Raft RPC connections.
+//  2. Configures the stream layer with the appropriate listener and TLS settings.
+//  3. Sets up the Raft configuration with the node's RPC address, local ID, bootstrap mode,
+//     and a notification channel for leader changes.
+//  4. Configures the FSM (Finite State Machine) with a history size limit and client state.
+//  5. Logs the setup information for the store.
+//  6. Creates a new distributed store instance with the provided configuration.
+//
+// If any error occurs during these steps, it returns the error.
 func (a *Agent) setupStore() error {
 	// Create a custom matcher function for the cmux multiplexer to identify Raft RPC connections
 	raftLn := a.mux.Match(func(reader io.Reader) bool {
@@ -209,6 +260,16 @@ func (a *Agent) setupStore() error {
 	return nil
 }
 
+// setupJetStream sets up JetStream for the agent.
+// It performs the following steps:
+//  1. Continuously monitors the leadership status through the leader channel.
+//  2. When the node becomes a leader, it logs this event and configures JetStream with necessary parameters,
+//     including NATS address, stream name, description, subjects, and consumer name.
+//  3. Establishes a connection to JetStream using the manager and starts consuming messages.
+//  4. If the node loses leadership, it logs this event and closes the JetStream connection.
+//
+// Only the leader is allowed to establish a NATs connection.
+// This function is responsible for subscribing to data from other services using JetStream.
 func (a *Agent) setupJetStream() error {
 	// Only Leader can establish jet stream connection
 	go func() {
@@ -245,6 +306,10 @@ func (a *Agent) setupJetStream() error {
 	return nil
 }
 
+// setupGRPCServer sets up the internal gRPC server for the agent.
+// It configures TLS if enabled, attaches logging interceptors,
+// and starts serving on a matched listener from the multiplexer.
+// The gRPC server is intended for internal communication within the system.
 func (a *Agent) setupGRPCServer() error {
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
@@ -275,6 +340,9 @@ func (a *Agent) setupGRPCServer() error {
 	return nil
 }
 
+// setupMembership initializes the membership service for the agent.
+// It sets up Serf-based discovery with the necessary configuration,
+// including node name, address, tags, start join addresses, and bootstrap mode.
 func (a *Agent) setupMembership() error {
 	rpcAddr, err := a.Config.RPCAddr()
 	if err != nil {
@@ -293,6 +361,8 @@ func (a *Agent) setupMembership() error {
 	return err
 }
 
+// serve starts serving the multiplexer and handles incoming connections.
+// It blocks until an error occurs or the agent is shut down.
 func (a *Agent) serve() error {
 	if err := a.mux.Serve(); err != nil {
 		return a.Shutdown()
