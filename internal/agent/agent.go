@@ -13,6 +13,7 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/hashicorp/raft"
+	"github.com/opplieam/bb-dist-noti/internal/clientstate"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
 	"github.com/opplieam/bb-dist-noti/internal/grpcserver"
 	"github.com/opplieam/bb-dist-noti/internal/httpserver"
@@ -31,6 +32,7 @@ type Agent struct {
 	store      *store.DistributedStore
 	leaderCh   chan bool
 	gServer    *grpc.Server
+	cState     *clientstate.ClientState
 	hServer    *http.Server
 	membership *discovery.Membership
 
@@ -90,11 +92,12 @@ func (a *Agent) Shutdown() error {
 			return nil
 		},
 		a.js.Close,
+		a.cState.Close,
 		a.membership.Leave,
+		a.store.Close,
 		func() error {
-			err := a.store.Close()
 			close(a.leaderCh)
-			return err
+			return nil
 		},
 		func() error {
 			a.gServer.GracefulStop()
@@ -124,6 +127,11 @@ func (a *Agent) setupLogger() error {
 	slog.SetDefault(logger)
 
 	a.logger = slog.With("component", "agent")
+	return nil
+}
+
+func (a *Agent) setupClientState() error {
+	a.cState = clientstate.NewClientState()
 	return nil
 }
 
