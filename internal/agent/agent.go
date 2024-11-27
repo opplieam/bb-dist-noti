@@ -76,11 +76,11 @@ func NewAgent(config Config) (*Agent, error) {
 	setup := []func() error{
 		a.setupLogger,
 		a.setupClientState,
-		a.setupHTTPServer,
 		a.setupJetStream,
 		a.setupMux,
 		a.setupStore,
 		a.setupGRPCServer,
+		a.setupHTTPServer,
 		a.setupMembership,
 	}
 	for _, fn := range setup {
@@ -181,6 +181,8 @@ func (a *Agent) setupClientState() error {
 // The server runs in a separate goroutine and logs its address for reference.
 func (a *Agent) setupHTTPServer() error {
 	a.Config.HttpConfig.CState = a.cState
+	a.Config.HttpConfig.Env = a.Config.Env
+	a.Config.HttpConfig.Store = a.store
 	a.hServer = httpserver.NewServer(a.Config.HttpConfig)
 	a.logger.Info("setup http server", slog.String("address", a.Config.HttpConfig.Addr))
 	go func() {
