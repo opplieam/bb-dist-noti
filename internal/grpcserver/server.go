@@ -12,6 +12,8 @@ import (
 
 	notiApi "github.com/opplieam/bb-dist-noti/protogen/notification_v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type ServerRetriever interface {
@@ -54,7 +56,10 @@ func NewGrpcServer(config *NotiConfig, opts ...grpc.ServerOption) *grpc.Server {
 
 	// TODO: Add gRPC healthcheck
 	srv := newNotiServer(config)
+	hsrv := health.NewServer()
+	hsrv.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 
+	healthpb.RegisterHealthServer(grpcServer, hsrv)
 	notiApi.RegisterNotificationServer(grpcServer, srv)
 
 	return grpcServer
