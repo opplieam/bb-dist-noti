@@ -58,7 +58,7 @@ func NewDistributedStore(dataDir string, config Config) (*DistributedStore, erro
 // FSM, logStore, stableStore, snapshotStore, transport, and configures Raft.
 func (d *DistributedStore) setupRaft() error {
 	// Setup FSM
-	fsm := NewFiniteState(d.config.FSM.Limit)
+	fsm := NewFiniteState(d.config.FSM.Limit, d.config.FSM.ClientState)
 	d.fsm = fsm
 
 	// Setup LogStore

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/raft"
+	"github.com/opplieam/bb-dist-noti/internal/clientstate"
 	api "github.com/opplieam/bb-dist-noti/protogen/category_v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -23,19 +24,21 @@ var _ raft.FSM = (*FiniteState)(nil)
 // FiniteState represents the finite state machine (FSM)
 // used to manage category messages in the distributed notification system.
 type FiniteState struct {
-	mu      sync.RWMutex
-	history []*api.CategoryMessage
-	limit   int
+	mu          sync.RWMutex
+	history     []*api.CategoryMessage
+	clientState *clientstate.ClientState
+	limit       int
 }
 
 // NewFiniteState creates a new FSM instance
-func NewFiniteState(limit int) *FiniteState {
+func NewFiniteState(limit int, cState *clientstate.ClientState) *FiniteState {
 	if limit <= 0 {
 		limit = 500
 	}
 	return &FiniteState{
-		history: make([]*api.CategoryMessage, 0),
-		limit:   limit,
+		history:     make([]*api.CategoryMessage, 0),
+		limit:       limit,
+		clientState: cState,
 	}
 }
 
@@ -63,7 +66,9 @@ func (s *FiniteState) Apply(record *raft.Log) interface{} {
 		s.history = append(s.history, &msg)
 		return nil
 	case CommandTypeBroadcast:
-		// TODO: Add broadcast command
+		for _, clientCh := range s.clientState.GetAllClients() {
+			clientCh <- &msg
+		}
 		return nil
 	default:
 		return fmt.Errorf("unknown command type %d", commandType)

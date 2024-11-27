@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/opplieam/bb-dist-noti/internal/clientstate"
 	sloggin "github.com/samber/slog-gin"
 )
 
 type Config struct {
 	Addr            string
+	CState          *clientstate.ClientState
 	WriteTimeout    time.Duration
 	ReadTimeout     time.Duration
 	IdleTimeout     time.Duration
@@ -24,7 +26,7 @@ func NewServer(cfg Config) *http.Server {
 	r.Use(sloggin.New(logger))
 	r.Use(gin.Recovery())
 
-	h := newHandler()
+	h := newHandler(cfg.CState)
 	r.GET("/category", h.SSE)
 
 	srv := &http.Server{

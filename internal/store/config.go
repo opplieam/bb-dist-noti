@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
+	"github.com/opplieam/bb-dist-noti/internal/clientstate"
 )
 
 type Config struct {
@@ -15,7 +16,8 @@ type Config struct {
 		Bootstrap bool
 	}
 	FSM struct {
-		Limit int
+		Limit       int
+		ClientState *clientstate.ClientState
 	}
 	StreamLayer struct {
 		RaftLn          net.Listener

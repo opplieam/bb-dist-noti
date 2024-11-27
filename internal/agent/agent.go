@@ -51,6 +51,7 @@ func NewAgent(config Config) (*Agent, error) {
 	}
 	setup := []func() error{
 		a.setupLogger,
+		a.setupClientState,
 		a.setupHTTPServer,
 		a.setupJetStream,
 		a.setupMux,
@@ -136,6 +137,7 @@ func (a *Agent) setupClientState() error {
 }
 
 func (a *Agent) setupHTTPServer() error {
+	a.Config.HttpConfig.CState = a.cState
 	a.hServer = httpserver.NewServer(a.Config.HttpConfig)
 	a.logger.Info("setup http server", slog.String("address", a.Config.HttpConfig.Addr))
 	go func() {
@@ -184,7 +186,9 @@ func (a *Agent) setupStore() error {
 	storeConfig.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	storeConfig.Raft.Bootstrap = a.Config.Bootstrap
 	storeConfig.Raft.NotifyCh = a.leaderCh
-
+	// FSM config
+	storeConfig.FSM.Limit = a.Config.HistorySize
+	storeConfig.FSM.ClientState = a.cState
 	a.logger.Info("setup store", slog.String("Addr", rpcAddr))
 	a.store, err = store.NewDistributedStore(a.Config.DataDir, storeConfig)
 	if err != nil {

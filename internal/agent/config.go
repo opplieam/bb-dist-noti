@@ -19,6 +19,7 @@ type Config struct {
 	NodeName        string
 	StartJoinAddrs  []string
 	Bootstrap       bool
+	HistorySize     int
 	Env             string
 }
 

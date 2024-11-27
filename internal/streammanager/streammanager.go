@@ -97,7 +97,14 @@ func (m *Manager) ConsumeMessages() error {
 	ctx, err := m.consumer.Consume(func(msg jetstream.Msg) {
 		var catMsg api.CategoryMessage
 		_ = proto.Unmarshal(msg.Data(), &catMsg)
-		fmt.Println(catMsg.CategoryFrom)
+		err := m.cmd.AddCommand(&catMsg)
+		if err != nil {
+			m.logger.Error("failed to add command", "error", err)
+		}
+		err = m.cmd.BroadcastCommand(&catMsg)
+		if err != nil {
+			m.logger.Error("failed to broadcast command", "error", err)
+		}
 
 		_ = msg.Ack()
 	})
