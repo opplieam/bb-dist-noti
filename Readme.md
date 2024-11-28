@@ -127,18 +127,18 @@ At the core of this system lies the `agent` package. It orchestrates all critica
 4. Access Service by port forward (7000)
 
 ---
-### Configuration
+## Configuration
 
-#### Application Configuration
+### Application Configuration
 Run `make help` to view available configuration flags
 
-#### Key Configuration Files
+### Key Configuration Files
 - `deploy/bb-noti/values.yaml`: Kubernetes deployment configuration
 - `tls/`: TLS certificate configuration
 
 ---
 
-### Project structure
+## Project structure
 
 ```bash
 .
