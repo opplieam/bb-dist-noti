@@ -90,6 +90,10 @@ run-node-3:
 .PHONY: test
 test:
 	go test -race ./...
+
+.PHONY: help
+help:
+	go run cmd/noti/main.go --help
 # ------------------------ Run Node Locally End ----------------------------
 
 # ------------------------ Run NATs Start ----------------------------------
