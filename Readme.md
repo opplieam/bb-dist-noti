@@ -1,5 +1,7 @@
 # Distributed Notification System
 
+![img](https://github.com/opplieam/bb-dist-noti/blob/main/bb-dist-noti.drawio.png?raw=true)
+
 A high-performance, fault-tolerant distributed notification system designed to deliver real-time notifications 
 with unparalleled speed and reliability. This system receives events from pipelines like NATS (Pub/Sub) 
 and seamlessly notifies connected users through Server-Sent Events (SSE). Built for scalability, 
