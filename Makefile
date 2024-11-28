@@ -118,7 +118,6 @@ docker-build-dev:
 
 .PHONY: docker-build-prod
 docker-build-prod:
-	@eval $$(minikube docker-env);\
 	docker build -t $(SERVICE_IMAGE) .
 
 .PHONY: docker-push
@@ -127,5 +126,13 @@ docker-push:
 
 .PHONY: docker-build-push
 docker-build-push: docker-build-prod docker-push
+
+.PHONY: helm
+helm:
+	helm install bb-noti deploy/bb-noti
+
+.PHONY: helm-del
+helm-del:
+	helm uninstall bb-noti
 
 # ------------------------ Build End ------------------------------------

@@ -276,16 +276,18 @@ func (d *DistributedStore) WaitForLeader(timeout time.Duration) error {
 // leader state. Returns an error if unable to get the Raft configuration.
 func (d *DistributedStore) GetServers() ([]*notiApi.Server, error) {
 	future := d.raft.GetConfiguration()
+
 	if err := future.Error(); err != nil {
 		return nil, err
 	}
 	var servers []*notiApi.Server
+
 	for _, server := range future.Configuration().Servers {
-		leaderAddr, _ := d.raft.LeaderWithID()
+		_, srvID := d.raft.LeaderWithID()
 		servers = append(servers, &notiApi.Server{
 			Id:       string(server.ID),
 			RpcAddr:  string(server.Address),
-			IsLeader: leaderAddr == server.Address,
+			IsLeader: srvID == server.ID,
 		})
 	}
 	return servers, nil

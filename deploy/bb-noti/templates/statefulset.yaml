@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "bb-noti.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "bb-noti.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "bb-noti.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "bb-noti.fullname" . }}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      name: {{ include "bb-noti.fullname" . }}
+      labels: {{ include "bb-noti.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "bb-noti.fullname" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.rpcPort }}
+              name: rpc
+            - containerPort: {{ .Values.httpPort }}
+              name: http
+            - containerPort: {{ .Values.serfPort }}
+              name: serf
+          volumeMounts:
+            - name: datadir
+              mountPath: /var/run/bb-noti
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  /bin/grpc_health_probe -addr=$HOSTNAME.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+            initialDelaySeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  /bin/grpc_health_probe -addr=$HOSTNAME.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+            initialDelaySeconds: 10
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          args:
+            - --env={{ .Values.env }}
+            - --data-dir=/var/run/bb-noti/data
+            - --serf-addr=$(POD_NAME).bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
+            - --start-join-addrs=bb-noti-0.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
+            - --start-join-addrs=bb-noti-1.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
+            - --rpc-port={{.Values.rpcPort}}
+            - --http-addr={{.Values.httpAddr}}
+            - --cluster-run=true
+            - --history-size=1000
+            - --nats-addr={{.Values.natsAddr}}
+  volumeClaimTemplates:
+    - metadata:
+        name: datadir
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage }}

@@ -13,12 +13,12 @@ type ServerRetriever interface {
 }
 
 type probeHandler struct {
-	serverRetriever ServerRetriever
+	ServerRetriever ServerRetriever
 	env             string
 }
 
 func newProbeHandler(env string, sr ServerRetriever) *probeHandler {
-	return &probeHandler{env: env, serverRetriever: sr}
+	return &probeHandler{env: env, ServerRetriever: sr}
 }
 
 func (h *probeHandler) Liveness(c *gin.Context) {
@@ -40,9 +40,9 @@ type ReadinessOutput struct {
 }
 
 func (h *probeHandler) Readiness(c *gin.Context) {
-	servers, err := h.serverRetriever.GetServers()
+	servers, err := h.ServerRetriever.GetServers()
 	if err != nil {
-		c.Status(http.StatusServiceUnavailable)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 	var output []ReadinessOutput

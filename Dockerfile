@@ -1,4 +1,4 @@
-FROM golang:1.23.2-alpine AS build
+FROM golang:1.23.3-alpine AS build
 
 RUN go env -w GOCACHE=/go-cache
 RUN go env -w GOMODCACHE=/gomod-cache

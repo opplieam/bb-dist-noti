@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bb-noti.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "bb-noti.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: rpc
+      port: {{ .Values.rpcPort }}
+      targetPort: {{ .Values.rpcPort }}
+    - name: http
+      port: {{ .Values.httpPort }}
+      targetPort: {{ .Values.httpPort }}
+    - name: serf-tcp
+      protocol: "TCP"
+      port: {{ .Values.serfPort }}
+      targetPort: {{ .Values.serfPort }}
+    - name: serf-udp
+      protocol: "UDP"
+      port: {{ .Values.serfPort }}
+      targetPort: {{ .Values.serfPort }}
+  selector: {{ include "bb-noti.selectorLabels" . | nindent 4 }}

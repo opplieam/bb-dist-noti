@@ -135,10 +135,11 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 		// Setup Start join address
 		// TODO: Better define joining address
 		// Don't set StartJoinAddrs at Node 0
-		if id != "0" {
-			c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
-		}
+		//if id != "0" {
+		//	c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
+		//}
 
+		c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
 	} else {
 		startJoinAddrs := viper.GetStringSlice("start-join-addrs")
 		if startJoinAddrs == nil {
