@@ -29,7 +29,9 @@ import (
 	"os"
 	"sync"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"github.com/hashicorp/raft"
 	"github.com/opplieam/bb-dist-noti/internal/clientstate"
 	"github.com/opplieam/bb-dist-noti/internal/discovery"
@@ -40,6 +42,7 @@ import (
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type Agent struct {
@@ -322,8 +325,13 @@ func (a *Agent) setupGRPCServer() error {
 	loggingOpt := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
 	}
+	logUnaryInter := logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...)
+	allButHealthZ := func(ctx context.Context, callMeta interceptors.CallMeta) bool {
+		return healthpb.Health_ServiceDesc.ServiceName != callMeta.Service
+	}
 	serverOpt := grpc.ChainUnaryInterceptor(
-		logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...),
+		selector.UnaryServerInterceptor(logUnaryInter, selector.MatchFunc(allButHealthZ)),
+		//logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...),
 	)
 
 	opts = append(opts, serverOpt)
