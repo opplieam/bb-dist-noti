@@ -164,4 +164,4 @@ Run `make help` to view available configuration flags
 - [ ] Enhance Serf cluster joining mechanism
 - [ ] Implement load balancing for follower node connections
 - [ ] Add comprehensive monitoring and metrics
-- [ ] Improve cache eviction policies
+- [x] Improve cache eviction policies
