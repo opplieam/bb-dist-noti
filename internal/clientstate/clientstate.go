@@ -23,6 +23,8 @@ func NewClientState() *ClientState {
 
 // Close closes all client channels and removes them from the clients map.
 func (s *ClientState) Close() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, client := range s.clients {
 		close(client)
 	}

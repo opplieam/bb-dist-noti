@@ -89,7 +89,7 @@ run-node-3:
 
 .PHONY: test
 test:
-	go test -race ./...
+	go test -count=1 -race ./...
 
 .PHONY: help
 help:

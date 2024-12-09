@@ -28,6 +28,7 @@ type FiniteState struct {
 	history     []*api.CategoryMessage
 	clientState *clientstate.ClientState
 	limit       int
+	batchSize   int
 }
 
 // NewFiniteState creates a new FSM instance
@@ -36,9 +37,10 @@ func NewFiniteState(limit int, cState *clientstate.ClientState) *FiniteState {
 		limit = 500
 	}
 	return &FiniteState{
-		history:     make([]*api.CategoryMessage, 0),
+		history:     make([]*api.CategoryMessage, 0, limit),
 		limit:       limit,
 		clientState: cState,
+		batchSize:   limit / 4,
 	}
 }
 
@@ -60,8 +62,9 @@ func (s *FiniteState) Apply(record *raft.Log) interface{} {
 	switch commandType {
 	case CommandTypeAdd:
 		if len(s.history) >= s.limit {
-			// Remove the oldest message if limit reached
-			s.history = s.history[1:]
+			newHistory := make([]*api.CategoryMessage, len(s.history)-s.batchSize, s.limit)
+			copy(newHistory, s.history[s.batchSize:])
+			s.history = newHistory
 		}
 		s.history = append(s.history, &msg)
 		return nil
