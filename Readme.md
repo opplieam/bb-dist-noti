@@ -158,6 +158,7 @@ Run `make help` to view available configuration flags
 ---
 ## Future Improvements
 
+- [ ] Add golangci-lint
 - [ ] Upgrade gRPC to Opaque
 - [ ] Implement more efficient data serialization
 - [ ] Add support for real user ID authentication
