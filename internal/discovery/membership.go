@@ -45,7 +45,7 @@ func NewMembership(handler Handler, config Config) (*Membership, error) {
 	m := &Membership{
 		Config:  config,
 		handler: handler,
-		logger:  slog.With("component", "membership"),
+		logger:  slog.Default().With("component", "membership"),
 	}
 	if err := m.setupSerf(); err != nil {
 		return nil, err
@@ -88,6 +88,8 @@ func (m *Membership) setupSerf() error {
 
 // eventHandler continuously listens for Serf events and processes them based on their type.
 // It handles join/leave events by calling handleJoin/handleLeave methods respectively.
+//
+//nolint:gocognit  // This function is complex due to handling multiple event types, but it's maintainable.
 func (m *Membership) eventHandler() {
 	for e := range m.events {
 		switch e.EventType() {
@@ -112,6 +114,8 @@ func (m *Membership) eventHandler() {
 					m.logError(err, "failed to leave", member)
 				}
 			}
+		case serf.EventMemberUpdate, serf.EventMemberReap, serf.EventUser, serf.EventQuery:
+			m.logger.Debug("unhandled event", "event", e.EventType().String())
 		}
 	}
 }
@@ -122,20 +126,20 @@ func (m *Membership) isLocal(member serf.Member) bool {
 }
 
 // Members returns the current list of members in the cluster.
-// Used in test
+// Used in test.
 func (m *Membership) Members() []serf.Member {
 	return m.serf.Members()
 }
 
 // Leave gracefully shuts down the node from the cluster.
-// Used in test
+// Used in test.
 func (m *Membership) Leave() error {
 	return m.serf.Leave()
 }
 
 // logError logs errors based on their type. Raft will return ErrNotLeader when attempting to
 // make changes to the cluster from a non-leader node. If the error is due to being a non-leader,
-// it should be expected and not logged
+// it should be expected and not logged.
 func (m *Membership) logError(err error, msg string, member serf.Member) {
 	level := slog.LevelError
 	if errors.Is(err, raft.ErrNotLeader) {
@@ -149,5 +153,4 @@ func (m *Membership) logError(err error, msg string, member serf.Member) {
 		slog.String("name", member.Name),
 		slog.String("rpc_addr", member.Tags["rpc_addr"]),
 	)
-
 }

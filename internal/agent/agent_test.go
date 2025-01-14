@@ -78,7 +78,7 @@ func createTestCluster(t *testing.T, nodeCount int) *testCluster {
 			NodeName:  fmt.Sprintf("%d", i),
 			DataDir:   dataDir,
 			Bootstrap: i == 0,
-			HttpConfig: httpserver.Config{
+			HTTPConfig: httpserver.Config{
 				//Addr:   fmt.Sprintf(":%d", BaseHttpPort+i),
 				Addr:   fmt.Sprintf(":%d", httpPort),
 				CState: clientstate.NewClientState(),
@@ -207,7 +207,7 @@ func TestReplication(t *testing.T) {
 	// Connect SSE to follower node, agents[1] and agents[2]
 	var responses []*http.Response
 	for i := 1; i < len(cluster.agents); i++ {
-		resp, err := connectSSE(t, cluster.agents[i].Config.HttpConfig.Addr)
+		resp, err := connectSSE(t, cluster.agents[i].Config.HTTPConfig.Addr)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 		responses = append(responses, resp)
@@ -241,7 +241,7 @@ func TestFaultTolerance(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// Connect to a remaining node
-	resp, err := connectSSE(t, cluster.agents[1].Config.HttpConfig.Addr)
+	resp, err := connectSSE(t, cluster.agents[1].Config.HTTPConfig.Addr)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 

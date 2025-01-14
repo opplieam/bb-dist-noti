@@ -23,6 +23,15 @@ type config struct {
 	PeerTLSPath   tlsconfig.TLSConfig
 }
 
+const (
+	defaultRPCPort             = 8400
+	defaultHistorySize         = 1000
+	defaultHTTPWriteTimeout    = 60 * time.Second
+	defaultHTTPReadTimeout     = 10 * time.Second
+	defaultHTTPIdleTimeout     = 600 * time.Second
+	defaultHTTPShutdownTimeout = 10 * time.Second
+)
+
 func main() {
 	cfg := &config{}
 
@@ -49,18 +58,18 @@ func setupFlags(cmd *cobra.Command) error {
 	cmd.Flags().String("data-dir", dataDir, "Directory to store Raft log consensus data")
 	cmd.Flags().String("node-name", hostname, "Unique server ID")
 	cmd.Flags().String("serf-addr", "127.0.0.1:8401", "Address to bind Serf on")
-	cmd.Flags().Int("rpc-port", 8400, "Port for RPC (and Raft) connections")
+	cmd.Flags().Int("rpc-port", defaultRPCPort, "Port for RPC (and Raft) connections")
 	cmd.Flags().StringSlice("start-join-addrs", nil, "Serf addresses to join")
 	cmd.Flags().Bool("bootstrap", false, "Bootstrap the cluster")
 	cmd.Flags().Bool("cluster-run", false, "Is Running in cluster")
 
-	cmd.Flags().Int("history-size", 1000, "A maximum size that history maintains")
+	cmd.Flags().Int("history-size", defaultHistorySize, "A maximum size that history maintains")
 
 	cmd.Flags().String("http-addr", ":5000", "Http listen address")
-	cmd.Flags().Duration("http-write-timeout", 60*time.Second, "Http Write timeout")
-	cmd.Flags().Duration("http-read-timeout", 10*time.Second, "Http Read timeout")
-	cmd.Flags().Duration("http-idle-timeout", 600*time.Second, "Http Idle timeout")
-	cmd.Flags().Duration("http-shutdown-timeout", 10*time.Second, "Http Shutdown timeout")
+	cmd.Flags().Duration("http-write-timeout", defaultHTTPWriteTimeout, "Http Write timeout")
+	cmd.Flags().Duration("http-read-timeout", defaultHTTPReadTimeout, "Http Read timeout")
+	cmd.Flags().Duration("http-idle-timeout", defaultHTTPIdleTimeout, "Http Idle timeout")
+	cmd.Flags().Duration("http-shutdown-timeout", defaultHTTPShutdownTimeout, "Http Shutdown timeout")
 
 	cmd.Flags().String("nats-addr", "nats://localhost:4222", "NATS server address")
 
@@ -74,7 +83,7 @@ func setupFlags(cmd *cobra.Command) error {
 	return viper.BindPFlags(cmd.Flags())
 }
 
-func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
+func (c *config) setupConfig(_ *cobra.Command, _ []string) error {
 	c.AConfig.Env = viper.GetString("env")
 	c.AConfig.DataDir = viper.GetString("data-dir")
 	c.AConfig.NodeName = viper.GetString("node-name")
@@ -82,11 +91,11 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 	c.AConfig.RPCPort = viper.GetInt("rpc-port")
 	c.AConfig.Bootstrap = viper.GetBool("bootstrap")
 
-	c.AConfig.HttpConfig.Addr = viper.GetString("http-addr")
-	c.AConfig.HttpConfig.ReadTimeout = viper.GetDuration("http-read-timeout")
-	c.AConfig.HttpConfig.WriteTimeout = viper.GetDuration("http-write-timeout")
-	c.AConfig.HttpConfig.IdleTimeout = viper.GetDuration("http-idle-timeout")
-	c.AConfig.HttpConfig.ShutdownTimeout = viper.GetDuration("http-shutdown-timeout")
+	c.AConfig.HTTPConfig.Addr = viper.GetString("http-addr")
+	c.AConfig.HTTPConfig.ReadTimeout = viper.GetDuration("http-read-timeout")
+	c.AConfig.HTTPConfig.WriteTimeout = viper.GetDuration("http-write-timeout")
+	c.AConfig.HTTPConfig.IdleTimeout = viper.GetDuration("http-idle-timeout")
+	c.AConfig.HTTPConfig.ShutdownTimeout = viper.GetDuration("http-shutdown-timeout")
 
 	c.AConfig.HistorySize = viper.GetInt("history-size")
 
@@ -100,9 +109,9 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 	c.PeerTLSPath.KeyFile = viper.GetString("peer-tls-key-file")
 	c.PeerTLSPath.CAFile = viper.GetString("peer-tls-ca-file")
 
-	var err error
 	if c.ServerTLSPath.CertFile != "" && c.ServerTLSPath.KeyFile != "" {
 		c.ServerTLSPath.Server = true
+		var err error
 		c.AConfig.ServerTLSConfig, err = tlsconfig.SetupTLSConfig(c.ServerTLSPath)
 		if err != nil {
 			return err
@@ -111,6 +120,7 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 
 	if c.PeerTLSPath.CertFile != "" && c.PeerTLSPath.KeyFile != "" {
 		c.PeerTLSPath.Server = false
+		var err error
 		c.AConfig.PeerTLSConfig, err = tlsconfig.SetupTLSConfig(c.PeerTLSPath)
 		if err != nil {
 			return err
@@ -135,9 +145,9 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 		// Setup Start join address
 		// TODO: Better define joining address
 		// Don't set StartJoinAddrs at Node 0
-		//if id != "0" {
-		//	c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
-		//}
+		// if id != "0" {
+		// 	 c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
+		// }
 
 		c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
 	} else {
@@ -151,7 +161,7 @@ func (c *config) setupConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (c *config) run(cmd *cobra.Command, args []string) error {
+func (c *config) run(_ *cobra.Command, _ []string) error {
 	a, err := agent.NewAgent(c.AConfig)
 	if err != nil {
 		return err

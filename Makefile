@@ -1,4 +1,4 @@
-# ------------------------ Proto Start ------------------------
+# ------------------------ Proto ------------------------
 GO_MODULE := github.com/opplieam/bb-dist-noti
 
 .PHONY: clean-directory
@@ -20,9 +20,9 @@ protoc-go:
 .PHONY: build-proto
 build-proto: clean-directory protoc-go
 
-# ------------------------ Proto End ------------------------
+# ------------------------ Proto ------------------------
 
-# ------------------------ TLS Start ------------------------
+# ------------------------ TLS ------------------------
 CONFIG_PATH=${HOME}/.bb-noti/
 
 .PHONY: init-dir
@@ -48,9 +48,9 @@ gencert:
 			-profile=client \
 			tls/client-csr.json | cfssljson -bare client
 	mv *.pem *.csr ${CONFIG_PATH}
-# ------------------------ TLS End --------------------------
+# ------------------------ TLS --------------------------
 
-# ------------------------ Run Node Locally Start --------------------------
+# ------------------------ Run Node Locally --------------------------
 
 .PHONY: rm-data-dir
 rm-data-dir:
@@ -87,16 +87,12 @@ run-node-3:
 		--rpc-port=8600 \
 		--start-join-addrs=127.0.0.1:8401
 
-.PHONY: test
-test:
-	go test -count=1 -race ./...
-
 .PHONY: help
 help:
 	go run cmd/noti/main.go --help
-# ------------------------ Run Node Locally End ----------------------------
+# ------------------------ Run Node Locally ----------------------------
 
-# ------------------------ Run NATs Start ----------------------------------
+# ------------------------ Run NATs ----------------------------------
 .PHONY: run-jet-stream
 run-jet-stream:
 	docker run -p 4222:4222 nats -js
@@ -105,9 +101,9 @@ run-jet-stream:
 run-mock-pub:
 	go run cmd/mockpub/main.go
 
-# ------------------------ Run NATs End ----------------------------------
+# ------------------------ Run NATs ----------------------------------
 
-# ------------------------ Build Start ----------------------------------
+# ------------------------ Build ----------------------------------
 BASE_IMAGE_NAME 	:= opplieam
 SERVICE_NAME    	:= bb-noti
 VERSION         	:= "0.0.1-$(shell git rev-parse --short HEAD)"
@@ -139,4 +135,15 @@ helm:
 helm-del:
 	helm uninstall bb-noti
 
-# ------------------------ Build End ------------------------------------
+# ------------------------ Build ------------------------------------
+
+# ------------------------ Lint/Test ------------------------------------
+.PHONY: test
+test:
+	go test -count=1 -race ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run --config .golangci.yml --verbose
+
+# ------------------------ Lint/Test ------------------------------------

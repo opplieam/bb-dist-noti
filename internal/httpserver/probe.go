@@ -47,7 +47,7 @@ func (h *probeHandler) Readiness(c *gin.Context) {
 	}
 	var output []ReadinessOutput
 	for _, server := range servers {
-		out := ReadinessOutput{ServerID: server.Id, RPCAddress: server.RpcAddr, IsLeader: server.IsLeader}
+		out := ReadinessOutput{ServerID: server.GetId(), RPCAddress: server.GetRpcAddr(), IsLeader: server.GetIsLeader()}
 		output = append(output, out)
 	}
 	c.JSON(http.StatusOK, output)

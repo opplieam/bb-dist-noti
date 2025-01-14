@@ -37,19 +37,20 @@ loop:
 		case v := <-clientCh:
 			_, _ = fmt.Fprintf(
 				c.Writer,
-				"data: UserID: %d Category: %s MatchCategory: %s\n\n", v.UserId, v.CategoryFrom, v.CategoryTo,
+				"data: UserID: %d Category: %s MatchCategory: %s\n\n", v.GetUserId(), v.GetCategoryFrom(), v.GetCategoryTo(),
 			)
 			c.Writer.Flush()
 		case <-clientClose:
-			//fmt.Println("Client disconnected")
+			// fmt.Println("Client disconnected")
 			break loop
 		}
 	}
 }
 
-// generateUniqueID generates a short, URL-safe unique ID
+// generateUniqueID generates a short, URL-safe unique ID.
 func generateUniqueID() (string, error) {
 	// Generate 5 random bytes
+	//nolint:mnd // This is temporary
 	bytes := make([]byte, 5)
 	_, err := rand.Read(bytes)
 	if err != nil {

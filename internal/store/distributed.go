@@ -1,7 +1,9 @@
 /*
 Package store implements a distributed append only store using Raft consensus.
 
-The store package provides a high-level API for managing a distributed system where multiple nodes can participate in decision-making through the Raft consensus protocol. It handles command application, state management, and cluster membership operations such as joining and leaving nodes.
+The store package provides a high-level API for managing a distributed system where multiple nodes
+can participate in decision-making through the Raft consensus protocol.
+It handles command application, state management, and cluster membership operations such as joining and leaving nodes.
 
 Key Features:
 - Distributed storage with Raft consensus
@@ -19,6 +21,7 @@ Usage:
 package store
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -42,11 +45,16 @@ type DistributedStore struct {
 	logger      *slog.Logger
 }
 
+const (
+	defaultMaxPool = 5
+	defaultTimeout = 10 * time.Second
+)
+
 func NewDistributedStore(dataDir string, config Config) (*DistributedStore, error) {
 	dis := &DistributedStore{
 		config:  config,
 		dataDir: dataDir,
-		logger:  slog.With("component", "distributed"),
+		logger:  slog.Default().With("component", "distributed"),
 	}
 	if err := dis.setupRaft(); err != nil {
 		return nil, err
@@ -103,10 +111,10 @@ func (d *DistributedStore) setupRaft() error {
 	maxPool := d.config.TransportLayer.MaxPool
 	timeout := d.config.TransportLayer.Timeout
 	if maxPool <= 0 {
-		maxPool = 5
+		maxPool = defaultMaxPool
 	}
 	if timeout <= 0 {
-		timeout = 10 * time.Second
+		timeout = defaultTimeout
 	}
 	transport := raft.NewNetworkTransport(
 		sl,
@@ -198,7 +206,7 @@ func (d *DistributedStore) BroadcastCommand(msg *api.CategoryMessage) error {
 
 // apply sends a command to the Raft consensus group and waits for it to be applied.
 func (d *DistributedStore) apply(cmd []byte) error {
-	future := d.raft.Apply(cmd, 10*time.Second)
+	future := d.raft.Apply(cmd, defaultTimeout)
 	if future.Error() != nil {
 		return future.Error()
 	}
@@ -261,7 +269,7 @@ func (d *DistributedStore) WaitForLeader(timeout time.Duration) error {
 	for {
 		select {
 		case <-timeoutC:
-			return fmt.Errorf("timed out. no leader")
+			return errors.New("timed out. no leader")
 		case <-ticker.C:
 			if le, _ := d.raft.LeaderWithID(); le != "" {
 				return nil

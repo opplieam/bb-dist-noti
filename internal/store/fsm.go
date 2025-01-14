@@ -31,16 +31,17 @@ type FiniteState struct {
 	batchSize   int
 }
 
-// NewFiniteState creates a new FSM instance
+// NewFiniteState creates a new FSM instance.
 func NewFiniteState(limit int, cState *clientstate.ClientState) *FiniteState {
 	if limit <= 0 {
 		limit = 500
 	}
+	var batchSize = limit / 4
 	return &FiniteState{
 		history:     make([]*api.CategoryMessage, 0, limit),
 		limit:       limit,
 		clientState: cState,
-		batchSize:   limit / 4,
+		batchSize:   batchSize,
 	}
 }
 
@@ -78,7 +79,7 @@ func (s *FiniteState) Apply(record *raft.Log) interface{} {
 	}
 }
 
-// Snapshot is used to support log compaction
+// Snapshot is used to support log compaction.
 func (s *FiniteState) Snapshot() (raft.FSMSnapshot, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -95,7 +96,7 @@ func (s *FiniteState) Snapshot() (raft.FSMSnapshot, error) {
 	return &FSMSnapshot{snapshot: snapshot}, nil
 }
 
-// Restore is used to restore an FSM from a snapshot
+// Restore is used to restore an FSM from a snapshot.
 func (s *FiniteState) Restore(rc io.ReadCloser) error {
 	defer rc.Close()
 
@@ -109,7 +110,7 @@ func (s *FiniteState) Restore(rc io.ReadCloser) error {
 	data := buf.Bytes()
 
 	var snapshot api.CategorySnapshot
-	if err := proto.Unmarshal(data, &snapshot); err != nil {
+	if err = proto.Unmarshal(data, &snapshot); err != nil {
 		return fmt.Errorf("error parsing snapshot: %w", err)
 	}
 
@@ -117,8 +118,8 @@ func (s *FiniteState) Restore(rc io.ReadCloser) error {
 	defer s.mu.Unlock()
 
 	// Restore history from snapshot
-	s.history = make([]*api.CategoryMessage, len(snapshot.Messages))
-	for i, msg := range snapshot.Messages {
+	s.history = make([]*api.CategoryMessage, len(snapshot.GetMessages()))
+	for i, msg := range snapshot.GetMessages() {
 		s.history[i] = proto.Clone(msg).(*api.CategoryMessage)
 	}
 
@@ -175,7 +176,7 @@ func (s *FiniteState) ReadLatest() *api.CategoryMessage {
 
 var _ raft.FSMSnapshot = (*FSMSnapshot)(nil)
 
-// FSMSnapshot is used to provide a snapshot of the current state
+// FSMSnapshot is used to provide a snapshot of the current state.
 type FSMSnapshot struct {
 	snapshot *api.CategorySnapshot
 }
@@ -199,10 +200,10 @@ func (f *FSMSnapshot) Persist(sink raft.SnapshotSink) error {
 	return sink.Close()
 }
 
-// Release is invoked when we are finished with the snapshot
+// Release is invoked when we are finished with the snapshot.
 func (f *FSMSnapshot) Release() {}
 
-// newCommand Helper function to create a new command
+// newCommand Helper function to create a new command.
 func newCommand(commandType CommandType, msg *api.CategoryMessage) ([]byte, error) {
 	var buf bytes.Buffer
 	// Write command type as a byte

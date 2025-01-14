@@ -3,18 +3,25 @@ Package agent provides a high Availability Agent for distributed systems.
 
 The agent manages client connections, handles HTTP requests, and sets up gRPC
 and membership services using Raft consensus and Serf-based discovery.
-It logs various events and errors during its operation and ensures proper shutdown procedures to close the store gracefully.
+It logs various events and errors during its operation and ensures proper
+shutdown procedures to close the store gracefully.
 
 Key Components:
-1. Client Connection Management: The agent maintains active connections with clients and handles reconnection logic in case of failures.
-2. HTTP Request Handling: It processes incoming HTTP requests, routing them to appropriate handlers based on the request path and method.
+1. Client Connection Management: The agent maintains active connections with clients
+and handles reconnection logic in case of failures.
+2. HTTP Request Handling: It processes incoming HTTP requests, routing them to appropriate
+handlers based on the request path and method.
 3. gRPC Service Setup: The agent configures a gRPC server that exposes APIs for distributed system operations.
 4. Membership Service: Utilizing Serf, the agent manages node discovery and failure detection in the cluster.
-5. Raft Consensus: For maintaining consistent state across nodes, the agent uses the Raft consensus algorithm to handle leader election and log replication.
-6. Logging: Comprehensive logging is implemented to track events such as request handling, connection management, and system errors.
-7. Graceful Shutdown: The agent ensures a smooth shutdown of services when the application receives an interrupt or termination signal.
+5. Raft Consensus: For maintaining consistent state across nodes,
+the agent uses the Raft consensus algorithm to handle leader election and log replication.
+6. Logging: Comprehensive logging is implemented to track events such as request handling,
+connection management, and system errors.
+7. Graceful Shutdown: The agent ensures a smooth shutdown of services when the application
+receives an interrupt or termination signal.
 
-This package is designed to be highly available and fault-tolerant, making it suitable for use in critical distributed systems where reliability is paramount.
+This package is designed to be highly available and fault-tolerant,
+making it suitable for use in critical distributed systems where reliability is paramount.
 */
 package agent
 
@@ -59,8 +66,7 @@ type Agent struct {
 
 	js *streammanager.Manager
 
-	shutdown bool
-	//shutdownCh chan struct{}
+	shutdown   bool
 	shutdownMu sync.Mutex
 }
 
@@ -74,7 +80,6 @@ func NewAgent(config Config) (*Agent, error) {
 	a := &Agent{
 		Config:   config,
 		leaderCh: make(chan bool, 1),
-		//shutdownCh: make(chan struct{}),
 	}
 	setup := []func() error{
 		a.setupLogger,
@@ -111,11 +116,10 @@ func (a *Agent) Shutdown() error {
 		return nil
 	}
 	a.shutdown = true
-	//close(a.shutdownCh)
 
 	shutdown := []func() error{
 		func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), a.Config.HttpConfig.ShutdownTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), a.Config.HTTPConfig.ShutdownTimeout)
 			defer cancel()
 			if err := a.hServer.Shutdown(ctx); err != nil {
 				_ = a.hServer.Close()
@@ -167,7 +171,7 @@ func (a *Agent) setupLogger() error {
 	}
 	slog.SetDefault(logger)
 
-	a.logger = slog.With("component", "agent")
+	a.logger = logger.With("component", "agent")
 	return nil
 }
 
@@ -183,11 +187,11 @@ func (a *Agent) setupClientState() error {
 // specifically enabling Server-Sent Events (SSE) for real-time communication.
 // The server runs in a separate goroutine and logs its address for reference.
 func (a *Agent) setupHTTPServer() error {
-	a.Config.HttpConfig.CState = a.cState
-	a.Config.HttpConfig.Env = a.Config.Env
-	a.Config.HttpConfig.Store = a.store
-	a.hServer = httpserver.NewServer(a.Config.HttpConfig)
-	a.logger.Info("setup http server", slog.String("address", a.Config.HttpConfig.Addr))
+	a.Config.HTTPConfig.CState = a.cState
+	a.Config.HTTPConfig.Env = a.Config.Env
+	a.Config.HTTPConfig.Store = a.store
+	a.hServer = httpserver.NewServer(a.Config.HTTPConfig)
+	a.logger.Info("setup http server", slog.String("address", a.Config.HTTPConfig.Addr))
 	go func() {
 		if err := a.hServer.ListenAndServe(); err != nil {
 			_ = a.Shutdown()
@@ -231,7 +235,7 @@ func (a *Agent) setupStore() error {
 		if _, err := reader.Read(b); err != nil {
 			return false
 		}
-		return bytes.Compare(b, []byte{byte(store.RaftRPC)}) == 0
+		return bytes.Equal(b, []byte{byte(store.RaftRPC)})
 	})
 
 	storeConfig := store.Config{}
@@ -258,10 +262,10 @@ func (a *Agent) setupStore() error {
 	}
 	// Bootstrap cluster for only first time
 	// Servers = 1 only for the first time of running
-	//servers, _ := a.store.GetServers()
-	//if a.Config.Bootstrap && len(servers) == 1 {
-	//	err = a.store.WaitForLeader(3 * time.Second)
-	//}
+	// servers, _ := a.store.GetServers()
+	// if a.Config.Bootstrap && len(servers) == 1 {
+	// 	err = a.store.WaitForLeader(3 * time.Second)
+	// }
 	return nil
 }
 
@@ -301,7 +305,6 @@ func (a *Agent) setupJetStream() error {
 					a.logger.Error("consume messages", slog.String("error", err.Error()))
 					return
 				}
-
 			} else {
 				a.logger.Info("Node lost leadership", slog.String("leader", a.Config.NodeName))
 				_ = a.js.Close()
@@ -326,12 +329,12 @@ func (a *Agent) setupGRPCServer() error {
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
 	}
 	logUnaryInter := logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...)
-	allButHealthZ := func(ctx context.Context, callMeta interceptors.CallMeta) bool {
+	allButHealthZ := func(_ context.Context, callMeta interceptors.CallMeta) bool {
 		return healthpb.Health_ServiceDesc.ServiceName != callMeta.Service
 	}
 	serverOpt := grpc.ChainUnaryInterceptor(
 		selector.UnaryServerInterceptor(logUnaryInter, selector.MatchFunc(allButHealthZ)),
-		//logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...),
+		// logging.UnaryServerInterceptor(grpcserver.InterceptorLogger(a.logger), loggingOpt...),
 	)
 
 	opts = append(opts, serverOpt)
@@ -343,7 +346,7 @@ func (a *Agent) setupGRPCServer() error {
 	a.logger.Info("setup grpc", slog.String("Addr", grpcLn.Addr().String()))
 	go func() {
 		if err := a.gServer.Serve(grpcLn); err != nil {
-			//a.logger.Error("gRPC server error", slog.String("error", err.Error()))
+			// a.logger.Error("gRPC server error", slog.String("error", err.Error()))
 			_ = a.Shutdown()
 		}
 	}()

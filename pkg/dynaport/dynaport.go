@@ -3,12 +3,11 @@
 package dynaport
 
 import (
-	"fmt"
+	"errors"
 	"math/rand"
 	"net"
 	"strconv"
 	"sync"
-	"time"
 )
 
 const (
@@ -24,8 +23,8 @@ var (
 	firstPort int
 	once      sync.Once
 	mu        sync.Mutex
-	lnLock    sync.Mutex
-	lockLn    net.Listener
+
+	lockLn net.Listener
 )
 
 // Get returns n ports that are free to use, panicing if it can't succeed.
@@ -60,16 +59,17 @@ func GetSWithErr(n int) ([]string, error) {
 }
 
 // GetWithErr returns n ports that are free to use.
-func GetWithErr(n int) (ports []int, err error) {
+func GetWithErr(n int) ([]int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	if n > blockSize-1 {
-		return nil, fmt.Errorf("dynaport: block size is too small for ports requested")
+		return nil, errors.New("dynaport: block size is too small for ports requested")
 	}
 
 	once.Do(initialize)
 
+	var ports []int
 	for len(ports) < n {
 		port++
 
@@ -93,9 +93,10 @@ func initialize() {
 	if lowPort+maxBlocks*blockSize > maxPorts {
 		panic("dynaport: block size is too big or too many blocks requested")
 	}
-	rand.Seed(time.Now().UnixNano())
+
 	var err error
-	for i := 0; i < attempts; i++ {
+	for _ = range attempts {
+		//nolint:gosec // This is a non-security-sensitive use of math/rand
 		block := int(rand.Int31n(int32(maxBlocks)))
 		firstPort = lowPort + block*blockSize
 		lockLn, err = listen(firstPort)

@@ -12,7 +12,7 @@ type Config struct {
 	ServerTLSConfig *tls.Config
 	PeerTLSConfig   *tls.Config
 	DataDir         string
-	HttpConfig      httpserver.Config
+	HTTPConfig      httpserver.Config
 	NatsAddr        string
 	SerfAddr        string
 	RPCPort         int

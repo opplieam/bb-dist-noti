@@ -23,9 +23,9 @@ type Config struct {
 }
 
 func NewServer(cfg Config) *http.Server {
-	logger := slog.With("component", "httpserver")
-	var r *gin.Engine
-	r = gin.New()
+	logger := slog.Default().With("component", "httpserver")
+
+	var r = gin.New()
 	r.Use(sloggin.New(logger))
 	r.Use(gin.Recovery())
 

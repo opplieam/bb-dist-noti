@@ -27,6 +27,10 @@ type Config struct {
 	ConsumerName string
 }
 
+const (
+	defaultMaxDeliveryAttempts = 4
+)
+
 type Manager struct {
 	cmd      Command
 	conn     *nats.Conn
@@ -54,10 +58,10 @@ func NewManager(ctx context.Context, cfg Config, cmd Command) (*Manager, error) 
 		conn:   conn,
 		js:     js,
 		cmd:    cmd,
-		logger: slog.With("component", "NATs"),
+		logger: slog.Default().With("component", "NATs"),
 	}
 
-	if err := manager.setupConsumer(ctx, cfg); err != nil {
+	if err = manager.setupConsumer(ctx, cfg); err != nil {
 		manager.Close()
 		return nil, err
 	}
@@ -84,7 +88,7 @@ func (m *Manager) setupConsumer(ctx context.Context, cfg Config) error {
 		Name:        cfg.ConsumerName,
 		Durable:     cfg.ConsumerName,
 		Description: cfg.Description,
-		MaxDeliver:  4,
+		MaxDeliver:  defaultMaxDeliveryAttempts,
 		BackOff: []time.Duration{
 			5 * time.Second,
 			10 * time.Second,
@@ -100,7 +104,8 @@ func (m *Manager) setupConsumer(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// ConsumeMessages starts consuming messages from the configured NATS stream and processes them using the command interface.
+// ConsumeMessages starts consuming messages from the configured NATS stream
+// and processes them using the command interface.
 func (m *Manager) ConsumeMessages() error {
 	m.logger.Info("consuming messages")
 	ctx, err := m.consumer.Consume(func(msg jetstream.Msg) {

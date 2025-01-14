@@ -1,6 +1,7 @@
 // Package grpcserver provides a gRPC server implementation for handling internal notifications between servers.
 //
-// This package is designed for internal use to facilitate communication between different servers within a distributed system.
+// This package is designed for internal use to facilitate communication between
+// different servers within a distributed system.
 // It defines:
 // - ServerRetriever interface: An interface for retrieving server information.
 // - NotiConfig struct: A configuration struct holding the server retriever.
@@ -40,9 +41,10 @@ func newNotiServer(config *NotiConfig) *notiServer {
 
 // GetServers implements the NotificationServer interface for getting server information.
 //
-// This function is designed to provide all servers' information in a Raft cluster, including their leader or follower status.
-// It is intended for internal use between servers within the same distributed system.
-func (n *notiServer) GetServers(ctx context.Context, req *notiApi.GetServersRequest) (*notiApi.GetServersResponse, error) {
+// This function is designed to provide all servers' information in a Raft cluster,
+// including their leader or follower status. It is intended for internal use between servers
+// within the same distributed system.
+func (n *notiServer) GetServers(_ context.Context, _ *notiApi.GetServersRequest) (*notiApi.GetServersResponse, error) {
 	server, err := n.ServerRetriever.GetServers()
 	if err != nil {
 		return nil, err
@@ -54,7 +56,6 @@ func (n *notiServer) GetServers(ctx context.Context, req *notiApi.GetServersRequ
 func NewGrpcServer(config *NotiConfig, opts ...grpc.ServerOption) *grpc.Server {
 	grpcServer := grpc.NewServer(opts...)
 
-	// TODO: Add gRPC healthcheck
 	srv := newNotiServer(config)
 	hsrv := health.NewServer()
 	hsrv.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
