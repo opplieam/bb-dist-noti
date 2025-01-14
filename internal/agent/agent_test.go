@@ -54,9 +54,30 @@ func setupNatsServer(t *testing.T) *server.Server {
 	return svr
 }
 
+func createStream(t *testing.T, addr string) {
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s", addr))
+	require.NoError(t, err)
+	defer nc.Close()
+	js, err := nc.JetStream()
+	require.NoError(t, err)
+
+	// Define the stream configuration
+	streamConfig := &nats.StreamConfig{
+		Name: "jobs",
+		Subjects: []string{
+			"jobs.noti.>",
+		},
+	}
+
+	// Add the stream
+	_, err = js.AddStream(streamConfig)
+	require.NoError(t, err)
+}
+
 func createTestCluster(t *testing.T, nodeCount int) *testCluster {
 	baseTmpDir := t.TempDir()
 	natsServer := setupNatsServer(t)
+	createStream(t, natsServer.Addr().String())
 
 	var agents []*agent.Agent
 	for i := 0; i < nodeCount; i++ {
