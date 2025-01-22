@@ -66,7 +66,9 @@ func TestMultipleNodes(t *testing.T) {
 
 	// Test replication
 	for _, cat := range catInfo {
-		err := disStores[0].AddCommand(cat)
+		msgB, err := proto.Marshal(cat)
+		require.NoError(t, err)
+		err = disStores[0].AddCommand(msgB)
 		require.NoError(t, err)
 
 		require.Eventually(t, func() bool {
@@ -115,7 +117,9 @@ func TestMultipleNodes(t *testing.T) {
 		CategoryFrom: "Car Truck",
 		CategoryTo:   "Truck",
 	}
-	err = disStores[0].AddCommand(moreCatInfo)
+	msgB, err := proto.Marshal(moreCatInfo)
+	require.NoError(t, err)
+	err = disStores[0].AddCommand(msgB)
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {

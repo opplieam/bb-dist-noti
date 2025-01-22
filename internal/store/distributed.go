@@ -179,26 +179,18 @@ func (d *DistributedStore) Close() error {
 }
 
 // AddCommand applies an add command to the Raft consensus group.
-// TODO: Change msg to byte type
-func (d *DistributedStore) AddCommand(msg *api.CategoryMessage) error {
-	b, err := newCommand(CommandTypeAdd, msg)
-	if err != nil {
-		return fmt.Errorf("error creating add command: %w", err)
-	}
-	if err = d.apply(b); err != nil {
+func (d *DistributedStore) AddCommand(msgB []byte) error {
+	b := newCommand(CommandTypeAdd, msgB)
+	if err := d.apply(b); err != nil {
 		return fmt.Errorf("error applying add command: %w", err)
 	}
 	return nil
 }
 
 // BroadcastCommand applies a broadcast command to the Raft consensus group.
-// TODO: Change msg to byte type
-func (d *DistributedStore) BroadcastCommand(msg *api.CategoryMessage) error {
-	b, err := newCommand(CommandTypeBroadcast, msg)
-	if err != nil {
-		return fmt.Errorf("error creating broadcast command: %w", err)
-	}
-	if err = d.apply(b); err != nil {
+func (d *DistributedStore) BroadcastCommand(msgB []byte) error {
+	b := newCommand(CommandTypeBroadcast, msgB)
+	if err := d.apply(b); err != nil {
 		return fmt.Errorf("error applying broadcast command: %w", err)
 	}
 	return nil

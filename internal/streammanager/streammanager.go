@@ -10,13 +10,11 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	api "github.com/opplieam/bb-dist-noti/protogen/category_v1"
-	"google.golang.org/protobuf/proto"
 )
 
 type Command interface {
-	AddCommand(msg *api.CategoryMessage) error
-	BroadcastCommand(msg *api.CategoryMessage) error
+	AddCommand(msgB []byte) error
+	BroadcastCommand(msgB []byte) error
 }
 
 type Config struct {
@@ -109,13 +107,11 @@ func (m *Manager) setupConsumer(ctx context.Context, cfg Config) error {
 func (m *Manager) ConsumeMessages() error {
 	m.logger.Info("consuming messages")
 	ctx, err := m.consumer.Consume(func(msg jetstream.Msg) {
-		var catMsg api.CategoryMessage
-		_ = proto.Unmarshal(msg.Data(), &catMsg)
-		err := m.cmd.AddCommand(&catMsg)
+		err := m.cmd.AddCommand(msg.Data())
 		if err != nil {
 			m.logger.Error("failed to add command", "error", err)
 		}
-		err = m.cmd.BroadcastCommand(&catMsg)
+		err = m.cmd.BroadcastCommand(msg.Data())
 		if err != nil {
 			m.logger.Error("failed to broadcast command", "error", err)
 		}
