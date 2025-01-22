@@ -204,22 +204,15 @@ func (f *FSMSnapshot) Persist(sink raft.SnapshotSink) error {
 func (f *FSMSnapshot) Release() {}
 
 // newCommand Helper function to create a new command.
-func newCommand(commandType CommandType, msg *api.CategoryMessage) ([]byte, error) {
+func newCommand(commandType CommandType, msgB []byte) []byte {
 	var buf bytes.Buffer
-	// Write command type as a byte
-	err := buf.WriteByte(byte(commandType))
-	if err != nil {
-		return nil, err
-	}
-	// Marshal the message and write it to the buffer
-	msgData, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(msgData)
-	if err != nil {
-		return nil, err
-	}
-	// Convert the buffer to a byte slice
-	return buf.Bytes(), nil
+	// Pre-allocate space to prevent multiple allocations
+	buf.Grow(1 + len(msgB))
+
+	// Error checking omitted because bytes.Buffer.Write* methods don't return errors
+	// in normal operation (only on massive memory exhaustion which would panic anyway)
+	buf.WriteByte(byte(commandType))
+	buf.Write(msgB)
+
+	return buf.Bytes()
 }

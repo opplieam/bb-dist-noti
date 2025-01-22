@@ -158,12 +158,12 @@ Run `make help` to view available configuration flags
 ---
 ## Future Improvements
 
-- [x] Add golangci-lint
+- [x] ~~Add golangci-lint~~
 - [ ] Upgrade gRPC to Opaque
-- [ ] Implement more efficient data serialization
+- [x] ~~Implement more efficient data serialization~~
 - [ ] Add support for real user ID authentication
 - [ ] Enhance start-join-addrs configuration
 - [ ] Enhance Serf cluster joining mechanism
 - [ ] Implement load balancing for follower node connections
 - [ ] Add comprehensive monitoring and metrics
-- [x] Improve cache eviction policies
+- [x] ~~Improve cache eviction policies~~
