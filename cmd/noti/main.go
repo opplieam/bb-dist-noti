@@ -141,14 +141,6 @@ func (c *config) setupConfig(_ *cobra.Command, _ []string) error {
 		// Setup Bootstrap only for the node bb-noti-0
 		id := match[1]
 		c.AConfig.Bootstrap = id == "0"
-
-		// Setup Start join address
-		// TODO: Better define joining address
-		// Don't set StartJoinAddrs at Node 0
-		// if id != "0" {
-		// 	 c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
-		// }
-
 		c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
 	} else {
 		startJoinAddrs := viper.GetStringSlice("start-join-addrs")

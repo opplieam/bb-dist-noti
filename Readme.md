@@ -162,8 +162,8 @@ Run `make help` to view available configuration flags
 - [ ] Upgrade gRPC to Opaque
 - [x] ~~Implement more efficient data serialization~~
 - [ ] Add support for real user ID authentication
-- [ ] Enhance start-join-addrs configuration
-- [ ] Enhance Serf cluster joining mechanism
+- [x] ~~Enhance start-join-addrs configuration~~
+- [x] ~~Enhance Serf cluster joining mechanism~~
 - [ ] Implement load balancing for follower node connections
 - [ ] Add comprehensive monitoring and metrics
 - [x] ~~Improve cache eviction policies~~

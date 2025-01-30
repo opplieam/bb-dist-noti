@@ -76,10 +76,9 @@ func (m *Membership) setupSerf() error {
 	}
 	go m.eventHandler()
 
-	// TODO: More robust joining cluster
-	_, err = m.serf.Join(m.Config.StartJoinAddr, true)
 	// Allow Bootstrap node to define StartJoinAddr,
 	// Because Bootstrap node can be down and need to rejoin the cluster
+	_, err = m.serf.Join(m.Config.StartJoinAddr, true)
 	if err != nil && !m.Config.Bootstrap {
 		return err
 	}
