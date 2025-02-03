@@ -15,10 +15,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ServerRetriever interface {
 	GetServers() ([]*notiApi.Server, error)
+	IsLeader() bool
 }
 
 // NotiConfig struct holds the configuration for the notification server.
@@ -50,6 +52,16 @@ func (n *notiServer) GetServers(_ context.Context, _ *notiApi.GetServersRequest)
 		return nil, err
 	}
 	return &notiApi.GetServersResponse{Servers: server}, nil
+}
+
+// GetLeaderStatus implements the NotificationServer interface for retrieving the leader status of the server.
+//
+// This function determines whether the current server is the leader in the Raft cluster.
+// It returns a boolean value indicating the leadership status. This method is primarily
+// used for internal checks and monitoring within the distributed system.
+func (n *notiServer) GetLeaderStatus(_ context.Context, _ *emptypb.Empty) (*notiApi.LeaderStatusResponse, error) {
+	isLeader := n.ServerRetriever.IsLeader()
+	return &notiApi.LeaderStatusResponse{IsLeader: isLeader}, nil
 }
 
 // NewGrpcServer creates a new gRPC server instance with the specified configuration and options.

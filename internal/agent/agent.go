@@ -324,7 +324,7 @@ func (a *Agent) setupGRPCServer() error {
 		creds := credentials.NewTLS(a.Config.ServerTLSConfig)
 		opts = append(opts, grpc.Creds(creds))
 	}
-
+	// TODO: Moving log logic to gRPC package
 	loggingOpt := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
 	}

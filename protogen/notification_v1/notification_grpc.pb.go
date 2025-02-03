@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,7 +20,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Notification_GetServers_FullMethodName = "/notification.v1.Notification/GetServers"
+	Notification_GetServers_FullMethodName      = "/notification.v1.Notification/GetServers"
+	Notification_GetLeaderStatus_FullMethodName = "/notification.v1.Notification/GetLeaderStatus"
 )
 
 // NotificationClient is the client API for Notification service.
@@ -27,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NotificationClient interface {
 	GetServers(ctx context.Context, in *GetServersRequest, opts ...grpc.CallOption) (*GetServersResponse, error)
+	GetLeaderStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*LeaderStatusResponse, error)
 }
 
 type notificationClient struct {
@@ -46,11 +49,21 @@ func (c *notificationClient) GetServers(ctx context.Context, in *GetServersReque
 	return out, nil
 }
 
+func (c *notificationClient) GetLeaderStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*LeaderStatusResponse, error) {
+	out := new(LeaderStatusResponse)
+	err := c.cc.Invoke(ctx, Notification_GetLeaderStatus_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotificationServer is the server API for Notification service.
 // All implementations must embed UnimplementedNotificationServer
 // for forward compatibility
 type NotificationServer interface {
 	GetServers(context.Context, *GetServersRequest) (*GetServersResponse, error)
+	GetLeaderStatus(context.Context, *emptypb.Empty) (*LeaderStatusResponse, error)
 	mustEmbedUnimplementedNotificationServer()
 }
 
@@ -60,6 +73,9 @@ type UnimplementedNotificationServer struct {
 
 func (UnimplementedNotificationServer) GetServers(context.Context, *GetServersRequest) (*GetServersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServers not implemented")
+}
+func (UnimplementedNotificationServer) GetLeaderStatus(context.Context, *emptypb.Empty) (*LeaderStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLeaderStatus not implemented")
 }
 func (UnimplementedNotificationServer) mustEmbedUnimplementedNotificationServer() {}
 
@@ -92,6 +108,24 @@ func _Notification_GetServers_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Notification_GetLeaderStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServer).GetLeaderStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Notification_GetLeaderStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServer).GetLeaderStatus(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Notification_ServiceDesc is the grpc.ServiceDesc for Notification service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +136,10 @@ var Notification_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServers",
 			Handler:    _Notification_GetServers_Handler,
+		},
+		{
+			MethodName: "GetLeaderStatus",
+			Handler:    _Notification_GetLeaderStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
