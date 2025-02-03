@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package notification.v1;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "github.com/opplieam/bb-dist-noti/protogen/notification_v1";
 
 message Server {
@@ -16,6 +18,11 @@ message GetServersResponse {
   repeated Server servers = 1;
 }
 
+message LeaderStatusResponse {
+  bool is_leader = 1;
+}
+
 service Notification {
   rpc GetServers(GetServersRequest) returns (GetServersResponse) {}
+  rpc GetLeaderStatus(google.protobuf.Empty) returns (LeaderStatusResponse) {}
 }

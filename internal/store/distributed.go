@@ -292,3 +292,10 @@ func (d *DistributedStore) GetServers() ([]*notiApi.Server, error) {
 	}
 	return servers, nil
 }
+
+// IsLeader checks if the current node is the leader of the Raft cluster. It returns
+// a boolean value indicating whether this node is the leader. This function directly
+// queries the Raft state to determine the leadership status.
+func (d *DistributedStore) IsLeader() bool {
+	return d.raft.State() == raft.Leader
+}
