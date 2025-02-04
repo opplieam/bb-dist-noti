@@ -7,7 +7,8 @@ serfAddr: :9000
 rpcPort: 8000
 httpPort: 7000
 httpAddr: :7000
-natsAddr: "nats://host.minikube.internal:4222"
+#natsAddr: "nats://host.minikube.internal:4222"
+natsAddr: "nats://host.docker.internal:4222"
 replicas: 3
 storage: 512Mi
 env: cluster-dev
