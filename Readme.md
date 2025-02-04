@@ -113,6 +113,7 @@ At the core of this system lies the `agent` package. It orchestrates all critica
 1. Build and Load Docker Image
     ```bash
     make docker-build-dev    # For minikube environments
+    make docker-build-dev-kind    # For kind environments
     ```
 
 2. Deploy Dependencies

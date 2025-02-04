@@ -116,6 +116,11 @@ docker-build-dev:
 	@eval $$(minikube docker-env);\
 	docker build -t $(SERVICE_IMAGE_DEV) .
 
+.PHONY: docker-build-dev-kind
+docker-build-dev-kind:
+	docker build -t $(SERVICE_IMAGE_DEV) .
+	kind load docker-image $(SERVICE_IMAGE_DEV)
+
 .PHONY: docker-build-prod
 docker-build-prod:
 	docker build -t $(SERVICE_IMAGE) .
