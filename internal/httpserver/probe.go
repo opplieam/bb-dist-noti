@@ -10,6 +10,7 @@ import (
 
 type ServerRetriever interface {
 	GetServers() ([]*notiApi.Server, error)
+	IsLeader() bool
 }
 
 type probeHandler struct {
@@ -26,10 +27,12 @@ func (h *probeHandler) Liveness(c *gin.Context) {
 	if err != nil {
 		host = "unavailable"
 	}
+	h.ServerRetriever.IsLeader()
 	c.JSON(http.StatusOK, gin.H{
-		"hostname": host,
-		"build":    h.env,
-		"status":   "up",
+		"hostname":  host,
+		"build":     h.env,
+		"status":    "up",
+		"is_leader": h.ServerRetriever.IsLeader(),
 	})
 }
 
