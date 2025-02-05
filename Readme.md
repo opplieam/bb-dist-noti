@@ -35,6 +35,10 @@ without querying external services.
 - **Kubernetes Ready**  
   Comes with Helm charts for easy deployment on Kubernetes clusters.
 
+- **Dynamic Load Balancing with Ingress Nginx**  
+  Uses Ingress Nginx to load balance traffic only to follower nodes.
+  Includes a custom Kubernetes operator for node labeling to ensure proper traffic routing.
+
 ## The Heart of the System: `agent.go`
 
 At the core of this system lies the `agent` package. It orchestrates all critical components, including:
@@ -108,24 +112,58 @@ At the core of this system lies the `agent` package. It orchestrates all critica
     ```
 5. Kill Node 1 or try to play around.
 
-### Kubernetes deployment (Local cluster)
+### Kubernetes Deployment (Local Cluster)
 
-1. Build and Load Docker Image
-    ```bash
-    make docker-build-dev    # For minikube environments
-    make docker-build-dev-kind    # For kind environments
-    ```
+#### 0. Install Nginx Ingress Controller
+Nginx Ingress Controller is required for HTTP protocol routing.
 
-2. Deploy Dependencies
-    ```bash
-   make run-jet-stream
-   make run-mock-pub
-    ```
-3. Deploy Application
-   ```bash
-    make helm    # Deploys using configuration from deploy/bb-noti/values.yaml
-    ```
-4. Access Service by port forward (7000)
+```bash
+make install-nginx
+```
+
+#### 1. Build and Load Docker Image
+Build and load the application image into your local cluster. Choose the appropriate command based on your environment:
+
+```bash
+make docker-build-dev-minikube    # For Minikube environment
+make docker-build-dev-kind        # For Kind environment
+```
+
+#### 2. Deploy Dependencies
+Ensure that required dependencies are running before deploying the application:
+
+```bash
+make run-jet-stream   # Starts NATS JetStream
+make run-mock-pub     # Starts mock publisher for testing
+```
+
+#### 3. Deploy Application
+Deploy the main application using Helm. The configuration is defined in `deploy/bb-noti/values.yaml`:
+
+```bash
+make helm
+```
+
+#### 4. Deploy Custom Kubernetes Operators
+For dynamic node labeling, deploy the custom Kubernetes operator:
+[bb-dist-noti-operator](https://github.com/opplieam/bb-dist-noti-operator)
+
+#### 5. Expose Application
+For Kind: Port-forward Nginx to expose the application.
+```bash
+kubectl port-forward svc/nginx-ingress-controller -n ingress-nginx 8080:80
+```
+For Minikube: Use the Minikube tunnel.
+
+```bash
+minikube tunnel
+```
+
+Also, update /etc/hosts with:
+```
+127.0.0.1 bb-noti.localhost
+```
+Access the application at http://bb-noti.localhost.
 
 ---
 ## Configuration
@@ -157,6 +195,12 @@ Run `make help` to view available configuration flags
 ```
 
 ---
+## Note about Kubernetes Operator
+
+While there may be simpler and more efficient solutions than using a Kubernetes operator, I chose to explore 
+the operator model specifically to learn how to build one using Kubebuilder.
+
+---
 ## Future Improvements
 
 - [x] ~~Add golangci-lint~~
@@ -165,6 +209,6 @@ Run `make help` to view available configuration flags
 - [ ] Add support for real user ID authentication
 - [x] ~~Enhance start-join-addrs configuration~~
 - [x] ~~Enhance Serf cluster joining mechanism~~
-- [ ] Implement load balancing for follower node connections
+- [x] ~~Implement load balancing for follower node connections~~
 - [ ] Add comprehensive monitoring and metrics
 - [x] ~~Improve cache eviction policies~~

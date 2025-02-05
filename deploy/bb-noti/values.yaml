@@ -12,3 +12,15 @@ natsAddr: "nats://host.docker.internal:4222"
 replicas: 3
 storage: 512Mi
 env: cluster-dev
+
+ingress:
+  enabled: true
+  className: nginx
+  host: bb-noti.localhost
+  paths:
+     - path: /
+       pathType: Prefix
+       servicePort: 7000
+
+certManager:
+  enabled: false

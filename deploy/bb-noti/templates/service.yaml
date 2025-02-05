@@ -11,9 +11,6 @@ spec:
     - name: rpc
       port: {{ .Values.rpcPort }}
       targetPort: {{ .Values.rpcPort }}
-    - name: http
-      port: {{ .Values.httpPort }}
-      targetPort: {{ .Values.httpPort }}
     - name: serf-tcp
       protocol: "TCP"
       port: {{ .Values.serfPort }}

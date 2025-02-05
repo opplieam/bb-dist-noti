@@ -111,8 +111,8 @@ VERSION_DEV         := "cluster-dev"
 SERVICE_IMAGE   	:= $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION)
 SERVICE_IMAGE_DEV   := $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION_DEV)
 
-.PHONY: docker-build-dev
-docker-build-dev:
+.PHONY: docker-build-dev-minikube
+docker-build-dev-minikube:
 	@eval $$(minikube docker-env);\
 	docker build -t $(SERVICE_IMAGE_DEV) .
 
@@ -152,3 +152,15 @@ lint:
 	golangci-lint run --config .golangci.yml --verbose
 
 # ------------------------ Lint/Test ------------------------------------
+
+# ------------------------ Nginx Controller ------------------------------------
+.PHONY: install-nginx
+install-nginx:
+	helm upgrade --install ingress-nginx ingress-nginx \
+  		--repo https://kubernetes.github.io/ingress-nginx \
+  		--namespace ingress-nginx --create-namespace
+
+.PHONY: uninstall-nginx
+uninstall-nginx:
+	helm uninstall ingress-nginx -n ingress-nginx
+# ------------------------ Nginx Controller ------------------------------------
