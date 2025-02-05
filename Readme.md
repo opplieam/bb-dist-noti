@@ -203,12 +203,12 @@ the operator model specifically to learn how to build one using Kubebuilder.
 ---
 ## Future Improvements
 
-- [x] ~~Add golangci-lint~~
+- [x] Add golangci-lint
 - [ ] Upgrade gRPC to Opaque
-- [x] ~~Implement more efficient data serialization~~
+- [x] Implement more efficient data serialization
 - [ ] Add support for real user ID authentication
-- [x] ~~Enhance start-join-addrs configuration~~
-- [x] ~~Enhance Serf cluster joining mechanism~~
-- [x] ~~Implement load balancing for follower node connections~~
+- [x] Enhance start-join-addrs configuration
+- [x] Enhance Serf cluster joining mechanism
+- [x] Implement load balancing for follower node connections
 - [ ] Add comprehensive monitoring and metrics
-- [x] ~~Improve cache eviction policies~~
+- [x] Improve cache eviction policies
