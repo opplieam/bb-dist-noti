@@ -26,7 +26,7 @@ type config struct {
 const (
 	defaultRPCPort             = 8400
 	defaultHistorySize         = 1000
-	defaultHTTPWriteTimeout    = 60 * time.Second
+	defaultHTTPWriteTimeout    = 600 * time.Second
 	defaultHTTPReadTimeout     = 10 * time.Second
 	defaultHTTPIdleTimeout     = 600 * time.Second
 	defaultHTTPShutdownTimeout = 10 * time.Second

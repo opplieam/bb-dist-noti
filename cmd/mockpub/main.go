@@ -43,7 +43,7 @@ func main() {
 	i := 0
 	for {
 		i++
-		time.Sleep(60 * time.Second)
+		time.Sleep(3 * time.Second)
 		msg := &api.CategoryMessage{
 			UserId:       1,
 			CategoryFrom: fmt.Sprintf("category-%d", i),
