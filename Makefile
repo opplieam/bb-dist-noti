@@ -117,13 +117,13 @@ VERSION_DEV         := "cluster-dev"
 SERVICE_IMAGE   	:= $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION)
 SERVICE_IMAGE_DEV   := $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION_DEV)
 
-.PHONY: docker-build-dev-minikube
-docker-build-dev-minikube:
+.PHONY: docker-build-minikube
+docker-build-minikube:
 	@eval $$(minikube docker-env);\
 	docker build -t $(SERVICE_IMAGE_DEV) .
 
-.PHONY: docker-build-dev-kind
-docker-build-dev-kind:
+.PHONY: docker-build-kind
+docker-build-kind:
 	docker build -t $(SERVICE_IMAGE_DEV) .
 	kind load docker-image $(SERVICE_IMAGE_DEV)
 
