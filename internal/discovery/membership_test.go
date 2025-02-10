@@ -13,8 +13,9 @@ import (
 
 // Mock handler
 type handler struct {
-	joins  chan map[string]string
-	leaves chan string
+	joins    chan map[string]string
+	leaves   chan string
+	isLeader bool
 }
 
 func (h *handler) Join(id, addr string) error {
@@ -34,21 +35,25 @@ func (h *handler) Leave(id string) error {
 	return nil
 }
 
+func (h *handler) IsLeader() bool {
+	return h.isLeader
+}
+
 func TestMembership(t *testing.T) {
 	m, ha := setupMember(t, nil)
 	m, _ = setupMember(t, m)
 	m, _ = setupMember(t, m)
 
 	require.Eventually(t, func() bool {
-		return 2 == len(ha.joins) &&
+		return 3 == len(ha.joins) &&
 			3 == len(m[0].Members()) &&
 			0 == len(ha.leaves)
 	}, 3*time.Second, 250*time.Millisecond)
 
-	require.NoError(t, m[2].Leave())
+	require.NoError(t, m[2].Close())
 
 	require.Eventually(t, func() bool {
-		return 2 == len(ha.joins) &&
+		return 3 == len(ha.joins) &&
 			3 == len(m[0].Members()) &&
 			serf.StatusLeft == m[0].Members()[2].Status &&
 			1 == len(ha.leaves)
@@ -75,7 +80,9 @@ func setupMember(t *testing.T, members []*discovery.Membership) ([]*discovery.Me
 	if len(members) == 0 {
 		h.joins = make(chan map[string]string, 3)
 		h.leaves = make(chan string, 3)
+		h.isLeader = true
 	} else {
+		h.isLeader = false
 		c.StartJoinAddr = []string{
 			members[0].Config.SerfAddr,
 		}

@@ -65,7 +65,9 @@ run-node-1:
 		--serf-addr=127.0.0.1:8401 \
 		--rpc-port=8400 \
 		--bootstrap=true \
-		--start-join-addrs=127.0.0.1:8402
+		--start-join-addrs=127.0.0.1:8401 \
+		--start-join-addrs=127.0.0.1:8501 \
+		--start-join-addrs=127.0.0.1:8601
 
 .PHONY: run-node-2
 run-node-2:
@@ -75,7 +77,9 @@ run-node-2:
 		--http-addr=":8502" \
 		--serf-addr=127.0.0.1:8501 \
 		--rpc-port=8500 \
-		--start-join-addrs=127.0.0.1:8401
+		--start-join-addrs=127.0.0.1:8401 \
+		--start-join-addrs=127.0.0.1:8501 \
+		--start-join-addrs=127.0.0.1:8601
 
 .PHONY: run-node-3
 run-node-3:
@@ -85,7 +89,9 @@ run-node-3:
 		--http-addr=":8602" \
 		--serf-addr=127.0.0.1:8601 \
 		--rpc-port=8600 \
-		--start-join-addrs=127.0.0.1:8401
+		--start-join-addrs=127.0.0.1:8401 \
+        --start-join-addrs=127.0.0.1:8501 \
+        --start-join-addrs=127.0.0.1:8601
 
 .PHONY: help
 help:
@@ -95,7 +101,7 @@ help:
 # ------------------------ Run NATs ----------------------------------
 .PHONY: run-jet-stream
 run-jet-stream:
-	docker run -p -rm 4222:4222 nats -js
+	docker run --rm -p 4222:4222 nats -js
 
 .PHONY: run-mock-pub
 run-mock-pub:

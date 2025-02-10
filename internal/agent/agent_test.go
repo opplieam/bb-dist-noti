@@ -230,7 +230,10 @@ func TestReplication(t *testing.T) {
 	for i := 1; i < len(cluster.agents); i++ {
 		resp, err := connectSSE(t, cluster.agents[i].Config.HTTPConfig.Addr)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		// defer resp.Body.Close()
+		t.Cleanup(func() {
+			_ = resp.Body.Close()
+		})
 		responses = append(responses, resp)
 	}
 

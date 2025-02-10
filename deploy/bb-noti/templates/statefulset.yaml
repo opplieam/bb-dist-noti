@@ -54,6 +54,7 @@ spec:
             - --serf-addr=$(POD_NAME).bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
             - --start-join-addrs=bb-noti-0.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
             - --start-join-addrs=bb-noti-1.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
+            - --start-join-addrs=bb-noti-2.bb-noti.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}
             - --rpc-port={{.Values.rpcPort}}
             - --http-addr={{.Values.httpAddr}}
             - --cluster-run=true
