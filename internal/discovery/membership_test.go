@@ -45,7 +45,7 @@ func TestMembership(t *testing.T) {
 			0 == len(ha.leaves)
 	}, 3*time.Second, 250*time.Millisecond)
 
-	require.NoError(t, m[2].Leave())
+	require.NoError(t, m[2].Close())
 
 	require.Eventually(t, func() bool {
 		return 2 == len(ha.joins) &&

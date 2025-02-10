@@ -135,7 +135,7 @@ func (a *Agent) Shutdown() error {
 			return a.js.Close()
 		},
 		a.cState.Close,
-		a.membership.Leave,
+		a.membership.Close,
 		a.store.Close,
 		func() error {
 			close(a.leaderCh)

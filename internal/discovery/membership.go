@@ -130,10 +130,15 @@ func (m *Membership) Members() []serf.Member {
 	return m.serf.Members()
 }
 
-// Leave gracefully shuts down the node from the cluster.
-// Used in test.
-func (m *Membership) Leave() error {
-	return m.serf.Leave()
+// Close gracefully shuts down the node from the cluster.
+func (m *Membership) Close() error {
+	//defer close(m.events)
+	var err error
+	err = m.serf.Leave()
+	if err != nil {
+		err = m.serf.Shutdown()
+	}
+	return err
 }
 
 // logError logs errors based on their type. Raft will return ErrNotLeader when attempting to
