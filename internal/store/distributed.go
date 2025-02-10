@@ -146,6 +146,9 @@ func (d *DistributedStore) setupRaft() error {
 	if err != nil {
 		return fmt.Errorf("error checking if log exists: %w", err)
 	}
+	// TODO: Handle full outage case. Data might be lost if bootstrap new cluster
+	// Maybe k8s operator to watch number of replicas and delete pod that is follower
+	// to rejoin a leader without losing data ?
 	if !hasState && d.config.Raft.Bootstrap {
 		clusterConfig := raft.Configuration{
 			Servers: []raft.Server{{

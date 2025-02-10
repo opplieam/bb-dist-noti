@@ -7,12 +7,9 @@
 package discovery
 
 import (
-	"context"
-	"errors"
 	"log/slog"
 	"net"
 
-	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -20,6 +17,7 @@ import (
 type Handler interface {
 	Join(name, addr string) error
 	Leave(name string) error
+	IsLeader() bool
 }
 
 // Config represents the configuration options for Membership.
@@ -85,54 +83,9 @@ func (m *Membership) setupSerf() error {
 	return nil
 }
 
-// eventHandler continuously listens for Serf events and processes them based on their type.
-// It handles join/leave events by calling handleJoin/handleLeave methods respectively.
-//
-//nolint:gocognit  // This function is complex due to handling multiple event types, but it's maintainable.
-func (m *Membership) eventHandler() {
-	for e := range m.events {
-		switch e.EventType() {
-		case serf.EventMemberJoin:
-			// If 10 nodes join around the same time, Serf will send 1 join event with 10 members
-			for _, member := range e.(serf.MemberEvent).Members {
-				// Serf sent event to all nodes. including the node that joined if left the cluster
-				// Prevent act on itself
-				if m.isLocal(member) {
-					continue
-				}
-				if err := m.handler.Join(member.Name, member.Tags["rpc_addr"]); err != nil {
-					m.logError(err, "failed to join", member)
-				}
-			}
-		case serf.EventMemberLeave, serf.EventMemberFailed:
-			for _, member := range e.(serf.MemberEvent).Members {
-				if m.isLocal(member) {
-					return
-				}
-				if err := m.handler.Leave(member.Name); err != nil {
-					m.logError(err, "failed to leave", member)
-				}
-			}
-		case serf.EventMemberUpdate, serf.EventMemberReap, serf.EventUser, serf.EventQuery:
-			m.logger.Debug("unhandled event", "event", e.EventType().String())
-		}
-	}
-}
-
-// isLocal checks if the given member is the local node.
-func (m *Membership) isLocal(member serf.Member) bool {
-	return m.serf.LocalMember().Name == member.Name
-}
-
-// Members returns the current list of members in the cluster.
-// Used in test.
-func (m *Membership) Members() []serf.Member {
-	return m.serf.Members()
-}
-
 // Close gracefully shuts down the node from the cluster.
 func (m *Membership) Close() error {
-	//defer close(m.events)
+	// defer close(m.events)
 	var err error
 	err = m.serf.Leave()
 	if err != nil {
@@ -141,20 +94,42 @@ func (m *Membership) Close() error {
 	return err
 }
 
-// logError logs errors based on their type. Raft will return ErrNotLeader when attempting to
-// make changes to the cluster from a non-leader node. If the error is due to being a non-leader,
-// it should be expected and not logged.
-func (m *Membership) logError(err error, msg string, member serf.Member) {
-	level := slog.LevelError
-	if errors.Is(err, raft.ErrNotLeader) {
-		level = slog.LevelDebug
+// eventHandler processes Serf events, reacting to membership changes.
+// As leader, it calls handler.Join/Leave for member events.
+// Unhandled events are logged for debugging.
+// Runs continuously until the event channel is closed.
+//
+//nolint:gocognit  // This function is complex due to handling multiple event types, but it's maintainable.
+func (m *Membership) eventHandler() {
+	for e := range m.events {
+		switch e.EventType() {
+		case serf.EventMemberJoin:
+			if !m.handler.IsLeader() {
+				continue
+			}
+			// If 10 nodes join around the same time, Serf will send 1 join event with 10 members
+			for _, member := range e.(serf.MemberEvent).Members {
+				if err := m.handler.Join(member.Name, member.Tags["rpc_addr"]); err != nil {
+					m.logger.Error("failed to join member", "member", member, "err", err)
+				}
+			}
+		case serf.EventMemberLeave, serf.EventMemberFailed:
+			if !m.handler.IsLeader() {
+				continue
+			}
+			for _, member := range e.(serf.MemberEvent).Members {
+				if err := m.handler.Leave(member.Name); err != nil {
+					m.logger.Error("failed to leave member", "member", member, "err", err)
+				}
+			}
+		case serf.EventMemberUpdate, serf.EventMemberReap, serf.EventUser, serf.EventQuery:
+			m.logger.Debug("unhandled event", "event", e.EventType().String())
+		}
 	}
-	m.logger.Log(
-		context.Background(),
-		level,
-		msg,
-		slog.String("error", err.Error()),
-		slog.String("name", member.Name),
-		slog.String("rpc_addr", member.Tags["rpc_addr"]),
-	)
+}
+
+// Members returns the current list of members in the cluster.
+// Used in test.
+func (m *Membership) Members() []serf.Member {
+	return m.serf.Members()
 }

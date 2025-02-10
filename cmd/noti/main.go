@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"path"
 	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -141,7 +142,15 @@ func (c *config) setupConfig(_ *cobra.Command, _ []string) error {
 		// Setup Bootstrap only for the node bb-noti-0
 		id := match[1]
 		c.AConfig.Bootstrap = id == "0"
-		c.AConfig.StartJoinAddrs = viper.GetStringSlice("start-join-addrs")
+
+		// Filter out the start join address for the current node
+		var startJoinAddrs []string
+		for _, addr := range viper.GetStringSlice("start-join-addrs") {
+			if !strings.Contains(addr, hostname) {
+				startJoinAddrs = append(startJoinAddrs, addr)
+			}
+		}
+		c.AConfig.StartJoinAddrs = startJoinAddrs
 	} else {
 		startJoinAddrs := viper.GetStringSlice("start-join-addrs")
 		if startJoinAddrs == nil {

@@ -212,3 +212,4 @@ the operator model specifically to learn how to build one using Kubebuilder.
 - [x] Implement load balancing for follower node connections
 - [ ] Add comprehensive monitoring and metrics
 - [x] Improve cache eviction policies
+- [] Handle full outage. 
