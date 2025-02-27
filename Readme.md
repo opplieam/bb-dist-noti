@@ -213,3 +213,4 @@ the operator model specifically to learn how to build one using Kubebuilder.
 - [ ] Add comprehensive monitoring and metrics
 - [x] Improve cache eviction policies
 - [] Handle full outage. 
+- [] Improve Makefile and handle go tools. 
